@@ -1,0 +1,11 @@
+name: Furniture
+version: 0.2.0
+main: cn.mcfhm.furniture.FurniturePlugin
+api-version: '26.3'
+authors: [FHM]
+description: Display 实体家具系统，带自动生成的资源包
+commands:
+  furniture:
+    description: 家具主命令
+    usage: "/furniture help"
+    aliases: [jiaju]

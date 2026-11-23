@@ -1,0 +1,110 @@
+{
+  "texture_size": [
+    16,
+    16
+  ],
+  "gui_light": "front",
+  "textures": {
+    "D": "minecraft:block/dark_oak_planks",
+    "I": "minecraft:block/iron_block",
+    "R": "minecraft:block/red_wool"
+  },
+  "elements": [
+    {
+      "from": [
+        7,
+        0,
+        7
+      ],
+      "to": [
+        9,
+        16,
+        9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#D"
+        },
+        "up": {
+          "texture": "#D"
+        },
+        "north": {
+          "texture": "#D"
+        },
+        "south": {
+          "texture": "#D"
+        },
+        "west": {
+          "texture": "#D"
+        },
+        "east": {
+          "texture": "#D"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        16,
+        4
+      ],
+      "to": [
+        12,
+        24,
+        12
+      ],
+      "faces": {
+        "down": {
+          "texture": "#I"
+        },
+        "up": {
+          "texture": "#I"
+        },
+        "north": {
+          "texture": "#I"
+        },
+        "south": {
+          "texture": "#I"
+        },
+        "west": {
+          "texture": "#I"
+        },
+        "east": {
+          "texture": "#I"
+        }
+      }
+    },
+    {
+      "from": [
+        12,
+        20,
+        5
+      ],
+      "to": [
+        13,
+        22,
+        6
+      ],
+      "faces": {
+        "down": {
+          "texture": "#R"
+        },
+        "up": {
+          "texture": "#R"
+        },
+        "north": {
+          "texture": "#R"
+        },
+        "south": {
+          "texture": "#R"
+        },
+        "west": {
+          "texture": "#R"
+        },
+        "east": {
+          "texture": "#R"
+        }
+      }
+    }
+  ]
+}

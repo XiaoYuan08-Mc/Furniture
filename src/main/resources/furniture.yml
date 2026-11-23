@@ -1,0 +1,1128 @@
+# ===== 家具定义（由 tools/gen-catalog.ps1 生成，手改后也可以直接跑插件） =====
+#   name          显示名（支持 & 颜色代码）
+#   model         资源包里的 item model，格式 命名空间:模型名（对应 assets/命名空间/models/模型名.json）
+#   material      物品本体材质（只影响背包图标底子，模型由 model 决定）
+#   hitbox-width  交互碰撞箱宽度（格）
+#   hitbox-height 交互碰撞箱高度（格）
+#   view-range    显示实体的可见范围倍率（1.0 为默认）
+#   transform     ItemDisplay 的显示变换上下文，默认 NONE（按方块 1:1 比例渲染）
+#   scale         模型缩放，默认 1.0
+#   offset-y      模型垂直偏移（格），默认 0（模型 y=0 贴地）
+#   size-width    占地宽度（格，模型局部 +x 方向），多格家具用 2/3
+#   size-depth    占地深度（格，模型局部 +z 方向）
+#   seat          能否坐人（右键坐下），配 seat-y 指定坐姿高度
+#   seat-y        坐姿高度（相对脚下方块底部，格；0.45~0.65 常见）
+#   light         能否开关灯（右键切换模型亮度，同时点亮周围）
+#   recipe        工作台合成配方；shaped: true 用 shape + ingredients，shaped: false 直接列材质
+
+furniture:
+
+  # ---- 座椅 ----
+  chair:
+    name: "&f木椅"
+    model: "furniture:chair"
+    material: PAPER
+    hitbox-width: 0.85
+    hitbox-height: 1.15
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.62
+    recipe:
+      shaped: true
+      shape:
+        - " P "
+        - "PPP"
+      ingredients:
+        P: OAK_PLANKS
+      amount: 1
+
+  chair_spruce:
+    name: "&f云杉椅"
+    model: "furniture:chair_spruce"
+    material: PAPER
+    hitbox-width: 0.85
+    hitbox-height: 1.3
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.62
+    recipe:
+      shaped: true
+      shape:
+        - "SS "
+        - "SSS"
+      ingredients:
+        S: SPRUCE_PLANKS
+      amount: 1
+
+  stool:
+    name: "&f圆凳"
+    model: "furniture:stool"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.5
+    recipe:
+      shaped: false
+      ingredients:
+        - OAK_PLANKS
+        - OAK_PLANKS
+        - STICK
+        - STICK
+      amount: 1
+
+  bench:
+    name: "&f长凳"
+    model: "furniture:bench"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.62
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "I I"
+      ingredients:
+        P: OAK_PLANKS
+        I: IRON_INGOT
+      amount: 1
+
+  rocking_chair:
+    name: "&f摇椅"
+    model: "furniture:rocking_chair"
+    material: PAPER
+    hitbox-width: 0.9
+    hitbox-height: 1.3
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.62
+    recipe:
+      shaped: true
+      shape:
+        - " P "
+        - "PPP"
+        - "L L"
+      ingredients:
+        P: DARK_OAK_PLANKS
+        L: STICK
+      amount: 1
+
+  armchair:
+    name: "&f扶手椅"
+    model: "furniture:armchair"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.42
+    recipe:
+      shaped: true
+      shape:
+        - "G G"
+        - "GGG"
+        - "P P"
+      ingredients:
+        G: GREEN_WOOL
+        P: OAK_PLANKS
+      amount: 1
+
+  couch:
+    name: "&f沙发"
+    model: "furniture:couch"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.45
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "WWW"
+        - "L L"
+      ingredients:
+        P: OAK_PLANKS
+        W: RED_WOOL
+        L: STICK
+      amount: 1
+
+  couch_blue:
+    name: "&f蓝色沙发"
+    model: "furniture:couch_blue"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.35
+    recipe:
+      shaped: true
+      shape:
+        - "BBB"
+        - "BPB"
+        - "PPP"
+      ingredients:
+        B: BLUE_WOOL
+        P: OAK_PLANKS
+      amount: 1
+
+  office_chair:
+    name: "&f办公椅"
+    model: "furniture:office_chair"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.65
+    recipe:
+      shaped: true
+      shape:
+        - "I I"
+        - "III"
+        - " L "
+      ingredients:
+        I: IRON_INGOT
+        L: STICK
+      amount: 1
+
+
+  # ---- 桌台 ----
+  table:
+    name: "&f木桌"
+    model: "furniture:table"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 0.95
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - " L "
+        - " L "
+      ingredients:
+        P: OAK_PLANKS
+        L: STICK
+      amount: 1
+
+  coffee_table:
+    name: "&f茶几"
+    model: "furniture:coffee_table"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 0.7
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "L L"
+      ingredients:
+        P: DARK_OAK_PLANKS
+        L: STICK
+      amount: 1
+
+  desk:
+    name: "&f书桌"
+    model: "furniture:desk"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "P P"
+        - "P P"
+      ingredients:
+        P: OAK_PLANKS
+      amount: 1
+
+  dining_table:
+    name: "&f餐桌"
+    model: "furniture:dining_table"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 0.95
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    size-width: 2
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - " L "
+        - " L "
+      ingredients:
+        P: DARK_OAK_PLANKS
+        L: STICK
+      amount: 1
+
+  side_table:
+    name: "&f边几"
+    model: "furniture:side_table"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 0.9
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: false
+      ingredients:
+        - BIRCH_PLANKS
+        - BIRCH_PLANKS
+        - STICK
+      amount: 1
+
+  picnic_table:
+    name: "&f野餐桌"
+    model: "furniture:picnic_table"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    size-width: 2
+    seat: true
+    seat-y: 0.5
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "PPP"
+        - "L L"
+      ingredients:
+        P: SPRUCE_PLANKS
+        L: STICK
+      amount: 1
+
+
+  # ---- 储物 ----
+  cabinet:
+    name: "&f木柜"
+    model: "furniture:cabinet"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "SSS"
+        - "SIS"
+        - "SSS"
+      ingredients:
+        S: SPRUCE_PLANKS
+        I: IRON_INGOT
+      amount: 1
+
+  drawer:
+    name: "&f抽屉柜"
+    model: "furniture:drawer"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "SSS"
+        - "I I"
+        - "SSS"
+      ingredients:
+        S: SPRUCE_PLANKS
+        I: IRON_INGOT
+      amount: 1
+
+  shelf:
+    name: "&f书架"
+    model: "furniture:shelf"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PSP"
+        - "BBB"
+        - "PSP"
+      ingredients:
+        P: OAK_PLANKS
+        S: STICK
+        B: BOOK
+      amount: 1
+
+  wardrobe:
+    name: "&f衣柜"
+    model: "furniture:wardrobe"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "SSS"
+        - "SIS"
+        - "SSS"
+      ingredients:
+        S: BIRCH_PLANKS
+        I: IRON_INGOT
+      amount: 1
+
+  nightstand:
+    name: "&f床头柜"
+    model: "furniture:nightstand"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "PIP"
+      ingredients:
+        P: OAK_PLANKS
+        I: IRON_INGOT
+      amount: 1
+
+  shoe_rack:
+    name: "&f鞋架"
+    model: "furniture:shoe_rack"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "L L"
+      ingredients:
+        P: BIRCH_PLANKS
+        L: STICK
+      amount: 1
+
+  tv_stand:
+    name: "&f电视柜"
+    model: "furniture:tv_stand"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "PIP"
+      ingredients:
+        P: DARK_OAK_PLANKS
+        I: IRON_INGOT
+      amount: 1
+
+  crate:
+    name: "&f木箱"
+    model: "furniture:crate"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: false
+      ingredients:
+        - OAK_PLANKS
+        - OAK_PLANKS
+        - OAK_PLANKS
+        - OAK_PLANKS
+        - STICK
+        - STICK
+      amount: 1
+
+  vanity:
+    name: "&f梳妆台"
+    model: "furniture:vanity"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "QQQ"
+        - "QPQ"
+      ingredients:
+        Q: SMOOTH_QUARTZ
+        P: OAK_PLANKS
+      amount: 1
+
+
+  # ---- 床 ----
+  bed:
+    name: "&f单人床"
+    model: "furniture:bed"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    size-depth: 2
+    seat: true
+    seat-y: 0.26
+    recipe:
+      shaped: true
+      shape:
+        - "WWW"
+        - "WPW"
+        - "PPP"
+      ingredients:
+        W: RED_WOOL
+        P: OAK_PLANKS
+      amount: 1
+
+  crib:
+    name: "&f婴儿床"
+    model: "furniture:crib"
+    material: PAPER
+    hitbox-width: 0.9
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    size-depth: 2
+    recipe:
+      shaped: true
+      shape:
+        - "WWW"
+        - "PPP"
+        - "WWW"
+      ingredients:
+        W: WHITE_WOOL
+        P: BIRCH_PLANKS
+      amount: 1
+
+
+  # ---- 灯具 ----
+  lamp:
+    name: "&f落地灯"
+    model: "furniture:lamp"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    light: true
+    recipe:
+      shaped: true
+      shape:
+        - " I "
+        - " I "
+        - "G  "
+      ingredients:
+        I: IRON_INGOT
+        G: GLOWSTONE
+      amount: 1
+
+  table_lamp:
+    name: "&f台灯"
+    model: "furniture:table_lamp"
+    material: PAPER
+    hitbox-width: 0.6
+    hitbox-height: 0.9
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    light: true
+    recipe:
+      shaped: true
+      shape:
+        - "G  "
+        - " I "
+        - " I "
+      ingredients:
+        G: GLOWSTONE
+        I: STICK
+      amount: 1
+
+  street_lamp:
+    name: "&f路灯"
+    model: "furniture:street_lamp"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    light: true
+    recipe:
+      shaped: true
+      shape:
+        - "IGI"
+        - " I "
+        - " I "
+      ingredients:
+        I: IRON_INGOT
+        G: GLOWSTONE
+      amount: 1
+
+  lantern_post:
+    name: "&f灯笼柱"
+    model: "furniture:lantern_post"
+    material: PAPER
+    hitbox-width: 0.7
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    light: true
+    recipe:
+      shaped: false
+      ingredients:
+        - DARK_OAK_LOG
+        - GLOWSTONE
+        - STICK
+        - STICK
+      amount: 1
+
+
+  # ---- 绿植 ----
+  plant:
+    name: "&f盆栽"
+    model: "furniture:plant"
+    material: PAPER
+    hitbox-width: 0.7
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: false
+      ingredients:
+        - FLOWER_POT
+        - DIRT
+        - OAK_LEAVES
+        - OAK_LEAVES
+      amount: 1
+
+  flower_pot:
+    name: "&f花盆"
+    model: "furniture:flower_pot"
+    material: PAPER
+    hitbox-width: 0.6
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: false
+      ingredients:
+        - TERRACOTTA
+        - DIRT
+        - OAK_LEAVES
+      amount: 1
+
+  planter_box:
+    name: "&f花箱"
+    model: "furniture:planter_box"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "DDD"
+      ingredients:
+        P: OAK_PLANKS
+        D: DIRT
+      amount: 1
+
+  hedge:
+    name: "&f绿篱"
+    model: "furniture:hedge"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: false
+      ingredients:
+        - OAK_LEAVES
+        - OAK_LEAVES
+        - OAK_LEAVES
+        - DIRT
+      amount: 1
+
+  birdhouse:
+    name: "&f鸟屋"
+    model: "furniture:birdhouse"
+    material: PAPER
+    hitbox-width: 0.7
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "P P"
+        - " S "
+      ingredients:
+        P: BIRCH_PLANKS
+        S: STICK
+      amount: 1
+
+  mailbox:
+    name: "&f信箱"
+    model: "furniture:mailbox"
+    material: PAPER
+    hitbox-width: 0.7
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "III"
+        - " S "
+      ingredients:
+        I: IRON_INGOT
+        S: STICK
+      amount: 1
+
+  fence:
+    name: "&f栅栏段"
+    model: "furniture:fence"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: false
+      ingredients:
+        - OAK_PLANKS
+        - OAK_PLANKS
+        - OAK_PLANKS
+        - STICK
+      amount: 1
+
+  well:
+    name: "&f水井"
+    model: "furniture:well"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "CCC"
+        - "CWC"
+        - "CCC"
+      ingredients:
+        C: COBBLESTONE
+        W: WATER_BUCKET
+      amount: 1
+
+
+  # ---- 景观 ----
+  garden_bench:
+    name: "&f花园长椅"
+    model: "furniture:garden_bench"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    seat: true
+    seat-y: 0.62
+    recipe:
+      shaped: true
+      shape:
+        - "PPP"
+        - "S S"
+      ingredients:
+        P: OAK_PLANKS
+        S: STONE
+      amount: 1
+
+  fountain:
+    name: "&f喷泉"
+    model: "furniture:fountain"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "SSS"
+        - "SBS"
+        - "SSS"
+      ingredients:
+        S: STONE_BRICKS
+        B: WATER_BUCKET
+      amount: 1
+
+  arch:
+    name: "&f花园拱门"
+    model: "furniture:arch"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "P P"
+        - "P P"
+        - "PPP"
+      ingredients:
+        P: OAK_PLANKS
+      amount: 1
+
+  scarecrow:
+    name: "&f稻草人"
+    model: "furniture:scarecrow"
+    material: PAPER
+    hitbox-width: 0.8
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "K  "
+        - "HHH"
+        - "L L"
+      ingredients:
+        K: CARVED_PUMPKIN
+        H: HAY_BLOCK
+        L: STICK
+      amount: 1
+
+
+  # ---- 厨房 ----
+  kitchen_counter:
+    name: "&f厨房台面"
+    model: "furniture:kitchen_counter"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "QQQ"
+        - "QIQ"
+        - "QQQ"
+      ingredients:
+        Q: SMOOTH_QUARTZ
+        I: IRON_INGOT
+      amount: 1
+
+  sink:
+    name: "&f水槽"
+    model: "furniture:sink"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "III"
+        - "QQQ"
+      ingredients:
+        I: IRON_INGOT
+        Q: SMOOTH_QUARTZ
+      amount: 1
+
+  fridge:
+    name: "&f冰箱"
+    model: "furniture:fridge"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "III"
+        - "I I"
+        - "III"
+      ingredients:
+        I: IRON_INGOT
+      amount: 1
+
+  stove:
+    name: "&f灶台"
+    model: "furniture:stove"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "III"
+        - "ICI"
+        - "III"
+      ingredients:
+        I: IRON_INGOT
+        C: COAL
+      amount: 1
+
+
+  # ---- 其他 ----
+  clock:
+    name: "&f落地钟"
+    model: "furniture:clock"
+    material: PAPER
+    hitbox-width: 0.9
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "DDD"
+        - "DGD"
+        - "DDD"
+      ingredients:
+        D: DARK_OAK_PLANKS
+        G: GLOWSTONE
+      amount: 1
+
+  coat_rack:
+    name: "&f衣帽架"
+    model: "furniture:coat_rack"
+    material: PAPER
+    hitbox-width: 0.5
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "I I"
+        - " I "
+        - " I "
+      ingredients:
+        I: IRON_INGOT
+      amount: 1
+
+  rug:
+    name: "&f地毯"
+    model: "furniture:rug"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 0.3
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "RRR"
+        - "RRR"
+      ingredients:
+        R: RED_WOOL
+      amount: 1
+
+  tv:
+    name: "&f电视"
+    model: "furniture:tv"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "KKK"
+        - "KKK"
+        - "D D"
+      ingredients:
+        K: BLACK_CONCRETE
+        D: DARK_OAK_PLANKS
+      amount: 1
+
+  fireplace:
+    name: "&f壁炉"
+    model: "furniture:fireplace"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 2.0
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    light: true
+    recipe:
+      shaped: true
+      shape:
+        - "BBB"
+        - "B B"
+        - "BGB"
+      ingredients:
+        B: BRICKS
+        G: GLOWSTONE
+      amount: 1
+
+  piano:
+    name: "&f钢琴"
+    model: "furniture:piano"
+    material: PAPER
+    hitbox-width: 1.0
+    hitbox-height: 1.2
+    view-range: 1.0
+    transform: NONE
+    scale: 1.0
+    offset-y: 0.0
+    recipe:
+      shaped: true
+      shape:
+        - "DDD"
+        - "DDD"
+        - "K K"
+      ingredients:
+        D: DARK_OAK_PLANKS
+        K: BLACK_CONCRETE
+      amount: 1
+

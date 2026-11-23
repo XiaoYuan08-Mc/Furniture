@@ -1,0 +1,38 @@
+# ===== Furniture 0.2.0 配置 =====
+
+resource-pack:
+  # 是否启用资源包（关闭后家具会显示成原材料的样子）
+  enabled: true
+  # builtin = 插件内置 HTTP 服务自动分发；external = 你自己托管 url
+  mode: builtin
+  # builtin 模式监听端口
+  port: 8123
+  # builtin 模式留空则自动使用本机局域网 IP；external 模式必填（指向 pack/FurniturePack.zip）
+  public-url: ""
+  prompt: "&e请接受资源包，否则自定义家具无法显示"
+  force: false
+  # 26.3 的资源包格式为 97.1（如果你的客户端版本不同，改这里）
+  pack-format:
+    major: 97
+    minor: 1
+  description: "FHM 家具资源包"
+
+place:
+  # 放置后是否消耗手里的家具物品（测试期建议 false）
+  consume-item: false
+  # 拆除时是否掉落家具物品
+  drop-item: true
+  # /furniture remove 的搜索半径（格）
+  remove-radius: 5
+
+interact:
+  # 潜行 + 右键方块上的家具 = 顺时针旋转 90°
+  sneak-rotate: true
+  # 坐姿高度微调（格）：觉得人浮在上方就调小（-0.1），陷进椅面就调大（+0.1）
+  seat-offset: 0.0
+  # 座位用 marker 隐形盔甲架（不挡碰撞）；如果坐不上去就改成 false
+  seat-marker: true
+
+# 是否在控制台输出资源包接受状态等调试信息
+debug: false
+
