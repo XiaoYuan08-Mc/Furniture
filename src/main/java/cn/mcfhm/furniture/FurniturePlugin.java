@@ -18,6 +18,9 @@ public final class FurniturePlugin extends JavaPlugin {
 
     /** 插件自带资源包的命名空间（assets/furniture/...） */
     public static final String PACK_NAMESPACE = "furniture";
+    /** 固定 UUID：只为把自己的包和别的插件（比如 FHMTitles）区分开 */
+    public static final java.util.UUID PACK_ID =
+            java.util.UUID.nameUUIDFromBytes("Furniture:resourcepack".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
     private final NamespacedKey furnitureIdKey = new NamespacedKey(this, "furniture_id");
     private FurnitureRegistry registry;
@@ -71,6 +74,10 @@ public final class FurniturePlugin extends JavaPlugin {
         }
         // 关服时界面还开着的话关闭事件不保证触发，先把内容写回去再存盘
         if (storage != null) {
+            // 进入关服流程：中间那些零散保存都跳过，最后统一写一次
+            if (manager != null) {
+                manager.beginShutdown();
+            }
             for (Player online : getServer().getOnlinePlayers()) {
                 storage.closeQuietly(online);
                 if (storage.isViewing(online)) {
@@ -79,7 +86,9 @@ public final class FurniturePlugin extends JavaPlugin {
             }
         }
         if (manager != null) {
-            manager.saveAll();
+            // 同步写完再关写线程，避免关服时最后一次改动丢掉
+            manager.saveBlocking();
+            manager.closeWriter();
         }
         if (packServer != null) {
             packServer.stop();
@@ -194,7 +203,29 @@ public final class FurniturePlugin extends JavaPlugin {
             return;
         }
         String prompt = Text.colorize(getConfig().getString("resource-pack.prompt", "请接受资源包"));
-        player.setResourcePack(url, pack.sha1(), prompt, getConfig().getBoolean("resource-pack.force", false));
+        boolean force = getConfig().getBoolean("resource-pack.force", false);
+        try {
+            // 走 Adventure 的请求，并用 replace(false) 叠加：不会把 FHMTitles 的图片称号包顶掉。
+            // 旧 API player.setResourcePack(...) 会替换掉其它插件的包，两个插件同时装就会互相打架。
+            net.kyori.adventure.resource.ResourcePackInfo info =
+                    net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo()
+                            .id(PACK_ID)
+                            .uri(java.net.URI.create(url))
+                            .hash(pack.sha1Hex())
+                            .build();
+            net.kyori.adventure.resource.ResourcePackRequest request =
+                    net.kyori.adventure.resource.ResourcePackRequest.resourcePackRequest()
+                            .packs(info)
+                            .prompt(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                                    .legacySection().deserialize(prompt))
+                            .required(force)
+                            .replace(false)
+                            .build();
+            player.sendResourcePacks(request);
+        } catch (Throwable t) {
+            getLogger().warning("下发资源包失败(" + player.getName() + "): " + t.getMessage());
+            return;
+        }
         if (getConfig().getBoolean("debug", false)) {
             player.sendMessage(Text.colorize("&7[Furniture] 已下发资源包: &f" + url));
         }

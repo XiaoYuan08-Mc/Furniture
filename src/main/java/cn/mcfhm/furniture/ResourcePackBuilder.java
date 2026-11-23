@@ -118,12 +118,18 @@ public final class ResourcePackBuilder {
         FileConfiguration config = plugin.getConfig();
         int major = config.getInt("resource-pack.pack-format.major", 97);
         int minor = config.getInt("resource-pack.pack-format.minor", 1);
+        // max 单独给，默认放到很宽：以前 min == max，客户端版本只要差一点整包就被拒
+        int maxMajor = Math.max(major, config.getInt("resource-pack.pack-format.max-major", 999));
+        int maxMinor = config.getInt("resource-pack.pack-format.max-minor", 0);
+        if (maxMajor == major && maxMinor < minor) {
+            maxMinor = minor;
+        }
         String description = config.getString("resource-pack.description", "FHM Furniture");
         return "{\n"
                 + "  \"pack\": {\n"
                 + "    \"description\": \"" + escape(description) + "\",\n"
                 + "    \"min_format\": [" + major + ", " + minor + "],\n"
-                + "    \"max_format\": [" + major + ", " + minor + "]\n"
+                + "    \"max_format\": [" + maxMajor + ", " + maxMinor + "]\n"
                 + "  }\n"
                 + "}\n";
     }

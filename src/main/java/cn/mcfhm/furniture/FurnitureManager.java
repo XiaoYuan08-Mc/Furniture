@@ -21,12 +21,17 @@ import org.joml.Vector3f;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 家具的生成、拆除、旋转与持久化。
@@ -46,6 +51,17 @@ public final class FurnitureManager {
     private final Map<Cell, PlacedFurniture> occupancy = new HashMap<>();
     /** 世界还没加载时读到的记录，原样保留并回写，避免主世界以外的家具被当成垃圾清掉 */
     private final List<Map<String, Object>> parked = new ArrayList<>();
+    /** 灯具按区块索引：区块加载时只查这一格，不再全表遍历 */
+    private final Map<String, List<PlacedFurniture>> lightsByChunk = new HashMap<>();
+    /** 单线程写盘：主线程只负责生成快照，IO 不卡 tick */
+    private final ExecutorService writer = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "Furniture-Save");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private boolean saveScheduled;
+    private volatile boolean writerClosed;
+    private volatile boolean shuttingDown;
 
     public FurnitureManager(FurniturePlugin plugin) {
         this.plugin = plugin;
@@ -110,15 +126,28 @@ public final class FurnitureManager {
      * @param yaw 朝向（度）
      */
     public PlacedFurniture place(Block block, FurnitureDef def, float yaw) {
+        return place(block, def, yaw, null);
+    }
+
+    /**
+     * 在指定方块处放置家具（锚点是家具脚下那格方块的坐标）。
+     *
+     * @param owner 放置者 UUID；null 表示公共家具（命令 / 控制台放置）
+     */
+    public PlacedFurniture place(Block block, FurnitureDef def, float yaw, UUID owner) {
         World world = block.getWorld();
         float snapped = snapYaw(yaw);
         if (!canPlace(world, block.getX(), block.getY(), block.getZ(), def, snapped)) {
             return null;
         }
-        return spawn(world, block.getX(), block.getY(), block.getZ(), def, snapped, false);
+        return spawn(world, block.getX(), block.getY(), block.getZ(), def, snapped, false, owner);
     }
 
     private PlacedFurniture spawn(World world, int x, int y, int z, FurnitureDef def, float yaw, boolean lit) {
+        return spawn(world, x, y, z, def, yaw, lit, null);
+    }
+
+    private PlacedFurniture spawn(World world, int x, int y, int z, FurnitureDef def, float yaw, boolean lit, UUID owner) {
         ItemStack stack = FurnitureItems.create(plugin, def);
 
         Location displayLoc = new Location(world, x + 0.5D, y + 0.5D, z + 0.5D, yaw, 0.0F);
@@ -166,6 +195,7 @@ public final class FurnitureManager {
                 display.getUniqueId(),
                 hitbox == null ? null : hitbox.getUniqueId()
         );
+        record.owner(owner);
         records.add(record);
         byDisplay.put(display.getUniqueId(), record);
         if (hitbox != null) {
@@ -205,12 +235,56 @@ public final class FurnitureManager {
         for (int[] offset : cells(def, record.yaw())) {
             occupancy.put(new Cell(record.worldName(), record.x() + offset[0], record.y(), record.z() + offset[1]), record);
         }
+        indexLight(record, def, true);
     }
 
     private void unregisterCells(PlacedFurniture record, FurnitureDef def) {
         for (int[] offset : cells(def, record.yaw())) {
             occupancy.remove(new Cell(record.worldName(), record.x() + offset[0], record.y(), record.z() + offset[1]), record);
         }
+        indexLight(record, def, false);
+    }
+
+    private static String chunkKey(String world, int cx, int cz) {
+        return world + "|" + cx + "|" + cz;
+    }
+
+    /** 灯具按区块建索引：区块加载时只查这一格，不再遍历全部家具。 */
+    private void indexLight(PlacedFurniture record, FurnitureDef def, boolean add) {
+        if (def == null || !def.light()) {
+            return;
+        }
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        for (int[] offset : cells(def, record.yaw())) {
+            int cx = (record.x() + offset[0]) >> 4;
+            int cz = (record.z() + offset[1]) >> 4;
+            long packed = ((long) cx << 32) ^ (cz & 0xffffffffL);
+            if (!seen.add(packed)) {
+                continue;
+            }
+            String key = chunkKey(record.worldName(), cx, cz);
+            List<PlacedFurniture> list = lightsByChunk.get(key);
+            if (add) {
+                if (list == null) {
+                    list = new ArrayList<>(2);
+                    lightsByChunk.put(key, list);
+                }
+                if (!list.contains(record)) {
+                    list.add(record);
+                }
+            } else if (list != null) {
+                list.remove(record);
+                if (list.isEmpty()) {
+                    lightsByChunk.remove(key);
+                }
+            }
+        }
+    }
+
+    /** 某个区块里的灯具（已建索引，O(1)）。 */
+    public List<PlacedFurniture> lightsInChunk(String world, int chunkX, int chunkZ) {
+        List<PlacedFurniture> list = lightsByChunk.get(chunkKey(world, chunkX, chunkZ));
+        return list == null ? List.of() : list;
     }
 
     /** 顺时针旋转 90°，占地格子和实体朝向一起转；新位置被挡就拒绝 */
@@ -347,7 +421,8 @@ public final class FurnitureManager {
         if (record.hitboxId() != null) {
             byHitbox.remove(record.hitboxId());
         }
-        saveAll();
+        // 拆除会立刻掉物品，这里必须马上落盘：万一 1 秒内崩服，记录还在就会刷出一件新家具
+        saveImmediate();
         return true;
     }
 
@@ -395,7 +470,74 @@ public final class FurnitureManager {
         return best;
     }
 
+    /**
+     * 合并落盘：1 秒内的多次放置 / 拆除 / 旋转只写一次。
+     * 主线程只负责生成快照，真正的 IO 交给 Furniture-Save 线程，避免家具多时卡 tick。
+     */
     public void saveAll() {
+        if (saveScheduled || writerClosed || shuttingDown) {
+            return;
+        }
+        saveScheduled = true;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            saveScheduled = false;
+            flushAsync();
+        }, 10L);
+    }
+
+    /** 需要尽快落盘（容器关闭、命令改档）：不排队，立刻生成快照交给写线程。 */
+    public void saveImmediate() {
+        if (writerClosed || shuttingDown) {
+            return;
+        }
+        flushAsync();
+    }
+
+    /** 关服流程开始：之后的零散保存都跳过，最后由 saveBlocking() 统一写一次。 */
+    public void beginShutdown() {
+        shuttingDown = true;
+    }
+
+    private void flushAsync() {
+        if (writerClosed) {
+            return;
+        }
+        YamlConfiguration config = snapshot();
+        writer.execute(() -> write(config));
+    }
+
+    /** 关服路径：同步写完再返回，不依赖写线程有没有排队。 */
+    public void saveBlocking() {
+        saveScheduled = false;
+        YamlConfiguration config = snapshot();
+        if (writerClosed) {
+            write(config);
+            return;
+        }
+        try {
+            // 交给同一个写线程并等它完成，保证前面排队的写入不会反过来把新内容覆盖掉
+            writer.submit(() -> write(config)).get(15, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            plugin.getLogger().warning("同步保存家具数据失败，改为直接写: " + e.getMessage());
+            write(config);
+        }
+    }
+
+    /** 关掉写线程；调用前应先 saveBlocking()。 */
+    public void closeWriter() {
+        writerClosed = true;
+        writer.shutdown();
+        try {
+            if (!writer.awaitTermination(10, TimeUnit.SECONDS)) {
+                plugin.getLogger().warning("家具存档写线程未在 10 秒内结束，可能有数据没落盘");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /** 在主线程生成一份完整快照（含世界未加载时保留的原始记录）。 */
+    private YamlConfiguration snapshot() {
         YamlConfiguration config = new YamlConfiguration();
         List<Map<String, Object>> list = new ArrayList<>();
         for (PlacedFurniture record : records) {
@@ -410,6 +552,9 @@ public final class FurnitureManager {
             entry.put("display", record.displayId().toString());
             if (record.hitboxId() != null) {
                 entry.put("hitbox", record.hitboxId().toString());
+            }
+            if (record.owner() != null) {
+                entry.put("owner", record.owner().toString());
             }
             if (!record.contents().isEmpty()) {
                 List<String> packed = new ArrayList<>(record.contents().size());
@@ -432,9 +577,22 @@ public final class FurnitureManager {
         // 世界尚未加载的记录原样带回，不能丢
         list.addAll(parked);
         config.set("furniture", list);
+        return config;
+    }
+
+    /** 序列化到临时文件再原子替换；加锁避免主线程（关服）和写线程同时操作同一个临时文件。 */
+    private synchronized void write(YamlConfiguration config) {
+        File parent = dataFile.getParentFile();
+        File tmp = new File(parent == null ? dataFile : parent, "placed.yml.tmp");
         try {
-            config.save(dataFile);
-        } catch (IOException ex) {
+            config.save(tmp);
+            try {
+                Files.move(tmp.toPath(), dataFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException notAtomic) {
+                Files.move(tmp.toPath(), dataFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception ex) {
             plugin.getLogger().warning("保存家具数据失败: " + ex.getMessage());
         }
     }
@@ -448,6 +606,7 @@ public final class FurnitureManager {
         byDisplay.clear();
         byHitbox.clear();
         occupancy.clear();
+        lightsByChunk.clear();
         parked.clear();
         if (!dataFile.exists()) {
             return;
@@ -472,6 +631,15 @@ public final class FurnitureManager {
                 UUID displayId = UUID.fromString(displayValue.toString());
                 Object hitboxValue = raw.get("hitbox");
                 UUID hitboxId = hitboxValue == null ? null : UUID.fromString(hitboxValue.toString());
+                UUID ownerId = null;
+                Object ownerValue = raw.get("owner");
+                if (ownerValue != null && !String.valueOf(ownerValue).isBlank()) {
+                    try {
+                        ownerId = UUID.fromString(ownerValue.toString());
+                    } catch (IllegalArgumentException ignored) {
+                        // 老存档 / 手改坏的 owner 当公共家具处理
+                    }
+                }
 
                 FurnitureDef def = plugin.registry().get(id);
                 World world = Bukkit.getWorld(worldName);
@@ -497,7 +665,7 @@ public final class FurnitureManager {
                 if (display == null) {
                     plugin.getLogger().warning("家具 " + id + " 的显示实体丢失，重新生成 (" + worldName + " " + x + "," + y + "," + z + ")");
                     // 重新生成后把原来的容器内容补回去，别把玩家存的东西弄丢
-                    PlacedFurniture fresh = spawn(world, x, y, z, def, yaw, lit);
+                    PlacedFurniture fresh = spawn(world, x, y, z, def, yaw, lit, ownerId);
                     if (fresh != null) {
                         readContents(fresh, raw.get("contents"));
                         saveAll();
@@ -508,6 +676,7 @@ public final class FurnitureManager {
                     plugin.getLogger().warning("家具 " + id + " 的碰撞箱实体丢失，交互可能失效 (" + worldName + " " + x + "," + y + "," + z + ")");
                 }
                 PlacedFurniture record = new PlacedFurniture(id, worldName, x, y, z, yaw, lit, displayId, hitboxId);
+                record.owner(ownerId);
                 if (hitboxId == null || world.getEntity(hitboxId) == null) {
                     // 老数据没有 hitbox 字段，或实体丢失：就近找一个同 ID 且没被登记的交互箱
                     Interaction found = findLooseHitbox(world, x, y, z, id);

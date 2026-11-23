@@ -11,19 +11,27 @@ resource-pack:
   public-url: ""
   prompt: "&e请接受资源包，否则自定义家具无法显示"
   force: false
-  # 26.3 的资源包格式为 97.1（如果你的客户端版本不同，改这里）
+  # 资源包格式区间：min 是包里模型需要的最低版本，max 决定客户端上限
+  # 26.3 的资源包格式为 97.1；max 默认写 999.0 是有意放宽，避免客户端小版本不同就整包被拒
   pack-format:
     major: 97
     minor: 1
+    max-major: 999
+    max-minor: 0
   description: "FHM 家具资源包"
 
 place:
-  # 放置后是否消耗手里的家具物品（测试期建议 false）
-  consume-item: false
+  # 放置后是否消耗手里的家具物品（上线务必保持 true，否则一件家具可以无限摆）
+  consume-item: true
   # 拆除时是否掉落家具物品
   drop-item: true
   # /furniture remove 的搜索半径（格）
   remove-radius: 5
+
+protect:
+  # 家具归属保护：只有放置者（或带 furniture.admin / furniture.protect.bypass 权限的人）能拆、旋转、开容器
+  # 关掉后回到"谁都能动"的旧行为
+  enabled: true
 
 interact:
   # 潜行 + 右键方块上的家具 = 顺时针旋转 90°

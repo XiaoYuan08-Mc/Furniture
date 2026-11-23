@@ -38,6 +38,11 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
+    val props = mapOf("version" to project.version.toString())
+    inputs.properties(props)
+    filesMatching("plugin.yml") {
+        expand(props)
+    }
 }
 
 tasks.jar {

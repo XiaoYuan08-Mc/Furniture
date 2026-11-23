@@ -1,5 +1,5 @@
 name: Furniture
-version: 0.3.1
+version: '${version}'
 main: cn.mcfhm.furniture.FurniturePlugin
 api-version: '26.3'
 authors: [FHM]
@@ -13,5 +13,8 @@ permissions:
   furniture.admin:
     description: 使用 give/place/remove/rotate/light/info/fill/pack/reload 管理命令
     default: op
+  furniture.protect.bypass:
+    description: 无视家具归属，能拆/旋转/打开别人的家具（不给默认值，只给信任的玩家组）
+    default: false
 
 

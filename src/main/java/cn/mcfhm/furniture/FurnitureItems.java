@@ -16,28 +16,34 @@ public final class FurnitureItems {
     public static ItemStack create(FurniturePlugin plugin, FurnitureDef def) {
         ItemStack stack = new ItemStack(def.material());
         ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(def.name());
+        meta.displayName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                .legacySection().deserialize(def.name()));
         meta.setItemModel(def.model());
-        List<String> lore = new ArrayList<>();
-        lore.add(Text.colorize("&7家具 &8» &f" + def.id()));
-        lore.add(Text.colorize("&8左键拆除 · 潜行右键旋转"));
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(legacy("&7家具 &8» &f" + def.id()));
+        lore.add(legacy("&8左键拆除 · 潜行右键旋转"));
         if (def.storage() > 0) {
-            lore.add(Text.colorize("&8右键打开容器 &7(" + def.storage() + " 格)"));
+            lore.add(legacy("&8右键打开容器 &7(" + def.storage() + " 格)"));
         }
         if (def.seat()) {
-            lore.add(Text.colorize("&8右键坐下 · 潜行起身"));
+            lore.add(legacy("&8右键坐下 · 潜行起身"));
         }
         if (def.light()) {
-            lore.add(Text.colorize("&8右键开关灯"));
+            lore.add(legacy("&8右键开关灯"));
         }
-        meta.setLore(lore);
+        meta.lore(lore);
         meta.getPersistentDataContainer().set(plugin.furnitureIdKey(), PersistentDataType.STRING, def.id());
         stack.setItemMeta(meta);
         return stack;
     }
 
-    public static FurnitureDef read(FurniturePlugin plugin, ItemStack stack) {
-        if (stack == null || stack.getType().isAir()) {
+    /** & 颜色代码 -> Adventure 组件（ItemMeta 的字符串 lore 已过时） */
+    private static net.kyori.adventure.text.Component legacy(String text) {
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                .legacySection().deserialize(Text.colorize(text));
+    }
+
+    public static FurnitureDef read(FurniturePlugin plugin, ItemStack stack) {        if (stack == null || stack.getType().isAir()) {
             return null;
         }
         ItemMeta meta = stack.getItemMeta();

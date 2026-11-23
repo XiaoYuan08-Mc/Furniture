@@ -83,7 +83,7 @@ public final class FurnitureListener implements Listener {
             player.sendMessage(Text.colorize("&c这里放不下 &f" + def.name() + "&c：位置被方块挡住或和别的家具重叠"));
             return;
         }
-        PlacedFurniture placed = plugin.manager().place(target, def, yaw);
+        PlacedFurniture placed = plugin.manager().place(target, def, yaw, player.getUniqueId());
         if (placed == null) {
             player.sendMessage(Text.colorize("&c家具生成失败，请查看控制台日志"));
             return;
@@ -117,6 +117,10 @@ public final class FurnitureListener implements Listener {
             return;
         }
         event.setCancelled(true);
+        if (!canManage(player, record)) {
+            player.sendMessage(Text.colorize("&c这不是你的家具，只有放置者或管理员能拆"));
+            return;
+        }
         breakFurniture(player, record);
     }
 
@@ -145,6 +149,10 @@ public final class FurnitureListener implements Listener {
 
         if (player.isSneaking()) {
             if (plugin.getConfig().getBoolean("interact.sneak-rotate", true)) {
+                if (!canManage(player, record)) {
+                    player.sendMessage(Text.colorize("&c这不是你的家具，只有放置者或管理员能旋转"));
+                    return;
+                }
                 if (plugin.manager().rotate(record, 90.0F)) {
                     player.sendMessage(Text.colorize("&a已旋转 &f" + def.name()));
                     Location soundAt = record.location();
@@ -166,6 +174,10 @@ public final class FurnitureListener implements Listener {
             return;
         }
         if (def.storage() > 0) {
+            if (!canManage(player, record)) {
+                player.sendMessage(Text.colorize("&c这不是你的家具，只有放置者或管理员能打开"));
+                return;
+            }
             plugin.storage().open(player, record, def);
             return;
         }
@@ -324,13 +336,11 @@ public final class FurnitureListener implements Listener {
     /** 区块重新加载后补回灯具亮度（显示实体的亮度不保证跨重载保留） */
     @EventHandler
     public void onChunkLoad(org.bukkit.event.world.ChunkLoadEvent event) {
-        for (PlacedFurniture record : plugin.manager().all()) {
-            if (!record.worldName().equals(event.getWorld().getName())) {
-                continue;
-            }
-            if ((record.x() >> 4) != event.getChunk().getX() || (record.z() >> 4) != event.getChunk().getZ()) {
-                continue;
-            }
+        String worldName = event.getWorld().getName();
+        int cx = event.getChunk().getX();
+        int cz = event.getChunk().getZ();
+        // 走区块索引，别再遍历全部家具
+        for (PlacedFurniture record : plugin.manager().lightsInChunk(worldName, cx, cz)) {
             FurnitureDef def = plugin.registry().get(record.id());
             if (def == null || !def.light()) {
                 continue;
@@ -353,13 +363,15 @@ public final class FurnitureListener implements Listener {
         }
     }
 
-    /** 拆掉的家具如果正有人坐，先让人起身 */
+    /** 拆掉的家具如果正有人坐，先把所有坐着的人请起来（多人沙发会同时坐好几个人）。 */
     private void ejectSeated(PlacedFurniture record) {
+        java.util.List<UUID> standIds = new java.util.ArrayList<>();
         for (Map.Entry<UUID, PlacedFurniture> entry : seatRecords.entrySet()) {
-            if (entry.getValue() != record) {
-                continue;
+            if (entry.getValue() == record) {
+                standIds.add(entry.getKey());
             }
-            UUID standId = entry.getKey();
+        }
+        for (UUID standId : standIds) {
             seatRecords.remove(standId);
             Player occupant = null;
             for (Map.Entry<UUID, UUID> seat : seats.entrySet()) {
@@ -372,13 +384,24 @@ public final class FurnitureListener implements Listener {
             if (occupant != null && occupant.getVehicle() != null) {
                 occupant.leaveVehicle();
             }
-            Entity seat = plugin.getServer().getWorld(record.worldName()) == null ? null
-                    : plugin.getServer().getWorld(record.worldName()).getEntity(standId);
+            org.bukkit.World world = plugin.getServer().getWorld(record.worldName());
+            Entity seat = world == null ? null : world.getEntity(standId);
             if (seat != null) {
                 seat.remove();
             }
-            return;
         }
+    }
+
+    /** 家具归属校验：放置者、管理员、公共家具（owner 为空）放行。 */
+    private boolean canManage(Player player, PlacedFurniture record) {
+        if (!plugin.getConfig().getBoolean("protect.enabled", true)) {
+            return true;
+        }
+        if (player.hasPermission("furniture.admin") || player.hasPermission("furniture.protect.bypass")) {
+            return true;
+        }
+        UUID owner = record.owner();
+        return owner == null || owner.equals(player.getUniqueId());
     }
 
     private void breakFurniture(Player player, PlacedFurniture record) {
@@ -466,6 +489,10 @@ public final class FurnitureListener implements Listener {
     /** 把资源包下发结果打到控制台，客户端加载失败时能立刻看出来 */
     @EventHandler
     public void onPackStatus(PlayerResourcePackStatusEvent event) {
+        // 只认自己的包，别把 FHMTitles 的包状态也当成家具包记日志 / 提示玩家
+        if (!FurniturePlugin.PACK_ID.equals(event.getID())) {
+            return;
+        }
         Player player = event.getPlayer();
         switch (event.getStatus()) {
             case SUCCESSFULLY_LOADED -> plugin.getLogger().info(

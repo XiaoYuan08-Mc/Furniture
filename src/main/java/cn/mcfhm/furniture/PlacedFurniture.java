@@ -18,6 +18,8 @@ public final class PlacedFurniture {
     private boolean lit;
     private final UUID displayId;
     private UUID hitboxId;
+    /** 放置者 UUID；null = 公共家具（命令放置 / 老存档），谁都能操作 */
+    private UUID owner;
     /** 容器类家具的物品内容（非容器家具始终为空） */
     private final java.util.List<org.bukkit.inventory.ItemStack> contents = new java.util.ArrayList<>();
 
@@ -84,6 +86,14 @@ public final class PlacedFurniture {
 
     void hitboxId(UUID value) {
         this.hitboxId = value;
+    }
+
+    public UUID owner() {
+        return owner;
+    }
+
+    void owner(UUID value) {
+        this.owner = value;
     }
 
     /** 可变列表，容器读档时直接往里塞物品 */

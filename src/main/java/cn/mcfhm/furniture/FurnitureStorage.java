@@ -33,6 +33,14 @@ public final class FurnitureStorage {
         if (def.storage() <= 0) {
             return;
         }
+        if (viewing.containsKey(player.getUniqueId())) {
+            if (viewing.get(player.getUniqueId()) == record) {
+                player.sendMessage(Text.colorize("&7这件家具的界面已经打开了"));
+                return;
+            }
+            // 先给上一件家具收尾，否则那份界面的改动会丢
+            closeQuietly(player);
+        }
         for (Map.Entry<UUID, PlacedFurniture> entry : viewing.entrySet()) {
             if (entry.getValue() != record || entry.getKey().equals(player.getUniqueId())) {
                 continue;
@@ -46,7 +54,9 @@ public final class FurnitureStorage {
         if (size % 9 != 0) {
             size = (size / 9 + 1) * 9;
         }
-        Inventory inventory = Bukkit.createInventory(null, size, def.name());
+        Inventory inventory = Bukkit.createInventory(null, size,
+                net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                        .legacySection().deserialize(def.name()));
         List<ItemStack> contents = record.contents();
         for (int slot = 0; slot < size && slot < contents.size(); slot++) {
             ItemStack stack = contents.get(slot);
@@ -79,7 +89,8 @@ public final class FurnitureStorage {
             return;
         }
         capture(record, inventory);
-        plugin.manager().saveAll();
+        // 容器刚关就落盘，不排在 1 秒的合并窗口里
+        plugin.manager().saveImmediate();
     }
 
     public PlacedFurniture viewingRecord(Player player) {
