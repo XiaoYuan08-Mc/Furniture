@@ -1,6 +1,6 @@
-# Furniture 0.3.1
+# Furniture
 
-基于 **Display 实体 + 自动资源包** 的家具框架，当前自带 **76 件家具 / 景观**，全部可在工作台合成。
+用 Display 实体做家具，资源包自动生成。自带 76 件家具和景观，都能在工作台合成。跑在 Purpur / Paper 26.3、Java 25 上。
 
 - 服务端：Purpur/Paper **26.3**（Java 25）
 - 家具外观：`ItemDisplay` 渲染 `item_model` 自定义模型（`ItemDisplayTransform.NONE`，模型 1 单位 = 1 像素，16 = 1 格）
@@ -8,7 +8,7 @@
 - 资源包：插件启动时把内置 `pack/` 打成 zip，并起一个内置 HTTP 服务（默认 8123，被占用自动顺延），玩家登录后自动下发
 - 合成：`furniture.yml` 的 `recipe` 节点注册成真正的工作台配方
 
-## 0.3.1：完整检查后修的 12 处
+## 0.3.1 修了什么
 
 1. **容器槽位保序**：界面里物品放在第 20 格，关掉重开后还在第 20 格（以前会全部挤到最前面）。存档用空串占位。
 2. **世界未加载的记录不再被清掉**：多世界服里 world 没加载时先把记录 park 住并原样回写，不会被 `saveAll` 当成垃圾删掉。
@@ -35,7 +35,7 @@
 
 ## 快速测试
 
-1. 把 `build/libs/Furniture-0.3.0.jar` 丢进 `plugins/`（**删掉旧的 0.2.0 jar**，同版本名会报 Ambiguous plugin name）。
+1. 把 `build/libs/Furniture-0.3.1.jar` 丢进 `plugins/`（**删掉旧的 0.3.0 jar**，同版本名会报 Ambiguous plugin name）。
 2. 控制台确认：
    - `已加载家具定义 76 个, 合成配方 76 条`
    - `资源包已生成: ...\plugins\Furniture\pack\FurniturePack.zip (56199 字节, sha1=…)`
