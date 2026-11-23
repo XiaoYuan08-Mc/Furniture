@@ -5,8 +5,19 @@
 - 服务端：Purpur/Paper **26.3**（Java 25）
 - 家具外观：`ItemDisplay` 渲染 `item_model` 自定义模型（`ItemDisplayTransform.NONE`，模型 1 单位 = 1 像素，16 = 1 格）
 - 交互碰撞：`Interaction` 实体（尺寸按家具定义，多格家具的交互箱覆盖整个占地）
+- 挡人碰撞：每格一只完全隐形的潜影贝，`Display` 和 `Interaction` 都没有实体碰撞
 - 资源包：插件启动时把内置 `pack/` 打成 zip，并起一个内置 HTTP 服务（默认 8123，被占用自动顺延），玩家登录后自动下发
 - 合成：`furniture.yml` 的 `recipe` 节点注册成真正的工作台配方
+
+## 0.4.0 修了什么
+
+1. **紫黑方块的原因找到了**：`bar_counter / kitchen_counter / mirror / round_table / sink / vanity` 这 6 个模型引用的是 `minecraft:block/smooth_quartz`，26.3 里这个贴图文件名没了（现在是 `quartz_block_*`），客户端只能画成紫黑缺失贴图。全部换成 `quartz_block_bottom`，顺手写了个脚本把 76 个模型的贴图名跟客户端 jar 里的清单对了一遍。
+2. **家具挡人了**：以前玩家能直接穿过桌子柜子。现在每件家具按占地格生成隐形潜影贝（无 AI、隐身、静音、不刷怪、无敌、不打掉落物），走不过去也打不掉。`collision.enabled` 可以整体关掉。
+3. **能坐的家具默认不挡人**：椅子沙发如果也挡，坐上去会被自己的碰撞箱顶出来，起身还可能卡在方块里。`collision.skip-seatable` 控制这条。
+4. **坐姿按模型算**：新增 `seat-points`，单位是模型像素 `[x, y, z]`，x/z 以锚点方块中心为 8。17 件能坐的家具逐件量了坐垫/凳面的顶面，以前吧台凳坐 0.92（人陷在凳子里）、圆凳坐 0.5（悬空 30cm）这类问题都改了。
+5. **多人座不再挤同一侧**：野餐桌的两个人原本会一起坐到同一侧的长凳外沿，现在按 `seat-points` 一人一边。
+6. **实体位置会被纠正**：区块重载后按 `placed.yml` 的坐标把 `ItemDisplay` 和交互箱摆回去；家具已经拆掉但潜影贝还留着的孤儿实体会在区块加载时清掉。
+7. **存档多了 `collision` 字段**：老存档没有这一项，读档时会按需补生成，不用手动迁移。
 
 ## 0.3.1 修了什么
 
@@ -35,7 +46,7 @@
 
 ## 快速测试
 
-1. 把 `build/libs/Furniture-0.3.1.jar` 丢进 `plugins/`（**删掉旧的 0.3.0 jar**，同版本名会报 Ambiguous plugin name）。
+1. 把 `build/libs/Furniture-0.4.0.jar` 丢进 `plugins/`（**删掉旧的 0.3.x jar**，同版本名会报 Ambiguous plugin name）。
 2. 控制台确认：
    - `已加载家具定义 76 个, 合成配方 76 条`
    - `资源包已生成: ...\plugins\Furniture\pack\FurniturePack.zip (56199 字节, sha1=…)`
@@ -97,25 +108,32 @@
 - `resource-pack.pack-format`：默认 `97.1`
 - `place.consume-item` / `place.drop-item`：放置是否消耗、拆除是否掉落
 - `interact.sneak-rotate`：潜行右键旋转
-- `interact.seat-offset`：坐姿高度微调（格），`/furniture reload` 生效
+- `interact.seat-offset`：坐姿全局微调（格），`/furniture reload` 生效
 - `interact.seat-marker`：座位用 marker 隐形盔甲架，坐不上去时改 `false`
+- `collision.enabled`：家具挡不挡人（每格一只隐形潜影贝）
+- `collision.skip-seatable`：能坐的家具是否跳过挡人（默认 true）
 - `light.place-block`：开灯是否放真实光源方块（关掉就只是模型自发光，夜里不照亮）
 
 `plugins/Furniture/furniture.yml`
 
-字段：`name / model / material / hitbox-width / hitbox-height / view-range / transform / scale / offset-y / size-width / size-depth / seat / seat-y / seats / light / storage / recipe`
+字段：`name / model / material / hitbox-width / hitbox-height / view-range / transform / scale / offset-y / size-width / size-depth / seat / seat-y / seat-points / solid / seats / light / storage / recipe`
 `model` 形如 `furniture:chair`：客户端读 `assets/furniture/items/chair.json`（**重建包时按定义自动生成**）→ 再指向 `assets/furniture/models/chair.json`。
 
 ```yaml
   sofa_long:
     size-width: 2      # 占地 2 格
     seat: true
-    seat-y: 0.35
-    seats: 2           # 两个人能同时坐，沿宽度等分
+    seat-y: 0.4375
+    seats: 2           # 两个人能同时坐
+    seat-points:       # 模型像素坐标：两个坐垫的中心
+      - [9, 7, 10]
+      - [23, 7, 10]
   cabinet:
     storage: 27        # 27 格储物，右键打开
   ceiling_lamp:
     light: true        # 右键开关灯 + 真实照明方块
+  rug:
+    solid: false       # 地毯平铺在地上，不生成碰撞
 ```
 
 加新家具的最小步骤：往 `pack/assets/furniture/models/` 放模型 json → `furniture.yml` 加一条 `model: furniture:xxx` → `/furniture reload`。`items/xxx.json` 不用手写。
@@ -124,9 +142,10 @@
 
 `plugins/Furniture/placed.yml` 每条记录：
 
-`id / world / x / y / z / yaw / lit / display / hitbox / contents`
+`id / world / x / y / z / yaw / lit / display / hitbox / collision / contents`
+- `collision` 是挡人用的潜影贝 UUID 列表，和占地格一一对应
 - `contents` 是新版 Base64 物品字节列表（老存档的 ItemStack / Map 形态会尝试兼容读取）
-- 老存档缺 `yaw` / `lit` / `hitbox` 也能读，交互箱和亮度会自动重新绑上
+- 老存档缺 `yaw` / `lit` / `hitbox` / `collision` 也能读，交互箱、亮度和碰撞体会自动重新绑上
 
 ## 批量生成目录
 
@@ -143,6 +162,8 @@ pwsh -File tools/gen-catalog.ps1
 - 坐标 `0~16` = 1 格，`y=0` 是家具底部，正面朝南（`+z`）；`y` 超过 16 即 2 格高
 - 放置锚点取方块中心 `y+0.5`，模型底面贴地；朝向 = 玩家视角 yaw + 180
 - 贴图全部复用原版方块贴图，76 件的包只有 56 KB
+- 原版偶尔会改贴图文件名（26.3 就把 `smooth_quartz` 改掉了，改完对应家具直接变紫黑方块）。换版本后跑一次
+  `python tools/validate.py`，它会拿 `D:/mc263/client.jar` 里的贴图清单核对每个模型引用的名字
 
 ## 这一版已跑通的（无头服 + 控制台命令）
 
@@ -166,8 +187,8 @@ pwsh -File tools/gen-catalog.ps1
 
 ## 已知限制
 
-- 没有实体碰撞，玩家能穿过家具
-- 拆家具没有「只能拆自己放的」限制，只做了权限节点
+- 挡人用的是隐形潜影贝，`/kill @e[type=shulker]` 或者清实体插件会把它们清掉；区块重新加载时会补回来
+- 能坐的家具默认不挡人（挡了坐不上去），想让椅子也挡就把 `collision.skip-seatable` 改成 false，代价是起身时可能卡在方块里
 - 无玩家在线时区块不加载，控制台放的家具要等人靠近才可见
 - 真实照明用的是透明 `light` 方块，占锚点格；锚点格不是空气时不会强行替换
 
@@ -182,7 +203,6 @@ gradle build --offline
 ## 下一步
 
 1. 双格床「躺下」姿态、沙发靠背朝向修正
-2. 家具碰撞（隐形方块 / barrier 撤销方案）
-3. 家具 GUI 图标单独做 2D 模型
-4. 资源包与服务器主资源包合并
-5. 继续扩量（目标 100+ 件，往 mod 家具包体量靠）
+2. 家具 GUI 图标单独做 2D 模型
+3. 资源包与服务器主资源包合并
+4. 继续扩量（目标 100+ 件，往 mod 家具包体量靠）

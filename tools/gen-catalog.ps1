@@ -68,64 +68,64 @@ $M = @{
 $items = @(
 
 # ================= 座椅 =================
-@{ id='chair'; name='木椅'; cat='座椅'; hw=0.85; hh=1.15; skipModel=$true; seat=$true; seatY=0.62;
+@{ id='chair'; name='木椅'; cat='座椅'; hw=0.85; hh=1.15; skipModel=$true; seat=$true; seatY=0.5625;
    tex=[ordered]@{ P=$M.OAK; L=$M.STR_OAK };
    recipe=@{ shaped=$true; shape=@(' P ', 'PPP'); ing=[ordered]@{ P='OAK_PLANKS' }; amount=1 } },
 
-@{ id='chair_spruce'; name='云杉椅'; cat='座椅'; hw=0.85; hh=1.3; seat=$true; seatY=0.62;
+@{ id='chair_spruce'; name='云杉椅'; cat='座椅'; hw=0.85; hh=1.3; seat=$true; seatY=0.625;
    tex=[ordered]@{ P=$M.SPRUCE; L=$M.STR_SPRUCE };
    box=@('2,8,2,14,10,14,P', '2,0,2,4,8,4,L', '12,0,2,14,8,4,L', '2,0,12,4,8,14,L', '12,0,12,14,8,14,L', '2,10,2,14,20,4,L');
    recipe=@{ shaped=$true; shape=@('SS ', 'SSS'); ing=[ordered]@{ S='SPRUCE_PLANKS' }; amount=1 } },
 
-@{ id='stool'; name='圆凳'; cat='座椅'; hw=0.8; hh=1.0; skipModel=$true; seat=$true; seatY=0.5;
+@{ id='stool'; name='圆凳'; cat='座椅'; hw=0.8; hh=1.0; skipModel=$true; seat=$true; seatY=0.8125;
    tex=[ordered]@{ P=$M.OAK; L=$M.STR_OAK };
    recipe=@{ shaped=$false; mats=@('OAK_PLANKS', 'OAK_PLANKS', 'STICK', 'STICK'); amount=1 } },
 
-@{ id='bench'; name='长凳'; cat='座椅'; hw=1.0; hh=1.2; seat=$true; seatY=0.62;
+@{ id='bench'; name='长凳'; cat='座椅'; hw=1.0; hh=1.2; seat=$true; seatY=0.625;
    tex=[ordered]@{ P=$M.OAK; L=$M.STR_OAK };
    box=@('1,8,1,15,10,15,P', '1,10,1,15,16,3,P', '2,0,2,4,8,4,L', '12,0,2,14,8,4,L', '2,0,12,4,8,14,L', '12,0,12,14,8,14,L');
    recipe=@{ shaped=$true; shape=@('PPP', 'I I'); ing=[ordered]@{ P='OAK_PLANKS'; I='IRON_INGOT' }; amount=1 } },
 
-@{ id='rocking_chair'; name='摇椅'; cat='座椅'; hw=0.9; hh=1.3; seat=$true; seatY=0.62;
+@{ id='rocking_chair'; name='摇椅'; cat='座椅'; hw=0.9; hh=1.3; seat=$true; seatY=0.625;
    tex=[ordered]@{ P=$M.DARK; L=$M.STR_DARK };
    box=@('3,8,3,13,10,13,P', '3,10,2,13,20,4,P', '3,0,10,5,8,14,L', '11,0,10,13,8,14,L', '2,0,2,14,2,16,L', '2,6,3,14,8,5,L');
    recipe=@{ shaped=$true; shape=@(' P ', 'PPP', 'L L'); ing=[ordered]@{ P='DARK_OAK_PLANKS'; L='STICK' }; amount=1 } },
 
-@{ id='armchair'; name='扶手椅'; cat='座椅'; hw=1.0; hh=1.2; seat=$true; seatY=0.42;
+@{ id='armchair'; name='扶手椅'; cat='座椅'; hw=1.0; hh=1.2; seat=$true; seatY=0.5;
    tex=[ordered]@{ G=$M.GREEN; W=$M.WHITE; P=$M.OAK };
    box=@('0,2,2,16,6,16,G', '0,6,2,3,11,16,G', '13,6,2,16,11,16,G', '0,6,2,16,16,6,G', '3,6,6,13,8,15,W', '1,0,3,3,2,5,P', '13,0,3,15,2,5,P');
    recipe=@{ shaped=$true; shape=@('G G', 'GGG', 'P P'); ing=[ordered]@{ G='GREEN_WOOL'; P='OAK_PLANKS' }; amount=1 } },
 
-@{ id='couch'; name='沙发'; cat='座椅'; hw=1.0; hh=1.0; skipModel=$true; seat=$true; seatY=0.45;
+@{ id='couch'; name='沙发'; cat='座椅'; hw=1.0; hh=1.0; skipModel=$true; seat=$true; seatY=0.25;
    tex=[ordered]@{ R=$M.RED; P=$M.OAK };
    recipe=@{ shaped=$true; shape=@('PPP', 'WWW', 'L L'); ing=[ordered]@{ P='OAK_PLANKS'; W='RED_WOOL'; L='STICK' }; amount=1 } },
 
-@{ id='couch_blue'; name='蓝色沙发'; cat='座椅'; hw=1.0; hh=1.2; seat=$true; seatY=0.35;
+@{ id='couch_blue'; name='蓝色沙发'; cat='座椅'; hw=1.0; hh=1.2; seat=$true; seatY=0.4375;
    tex=[ordered]@{ B=$M.BLUE; W=$M.WHITE; P=$M.OAK };
    box=@('0,0,1,16,4,15,B', '0,4,1,16,13,5,B', '0,4,5,3,9,15,B', '13,4,5,16,9,15,B', '3,4,6,7,7,14,W', '9,4,6,13,7,14,W', '1,0,2,3,2,4,P', '13,0,2,15,2,4,P');
    recipe=@{ shaped=$true; shape=@('BBB', 'BPB', 'PPP'); ing=[ordered]@{ B='BLUE_WOOL'; P='OAK_PLANKS' }; amount=1 } },
 
-@{ id='office_chair'; name='办公椅'; cat='座椅'; hw=0.8; hh=1.2; seat=$true; seatY=0.65;
+@{ id='office_chair'; name='办公椅'; cat='座椅'; hw=0.8; hh=1.2; seat=$true; seatY=0.625;
    tex=[ordered]@{ K=$M.BLACK; I=$M.IRON };
    box=@('7,0,7,9,2,9,I', '4,2,4,12,4,12,I', '4,8,4,12,10,12,K', '4,10,3,12,20,5,K', '7,4,7,9,8,9,I', '10,8,5,12,9,11,K');
    recipe=@{ shaped=$true; shape=@('I I', 'III', ' L '); ing=[ordered]@{ I='IRON_INGOT'; L='STICK' }; amount=1 } },
 
-@{ id='bar_stool'; name='吧台凳'; cat='座椅'; hw=0.7; hh=1.5; seat=$true; seatY=0.92;
+@{ id='bar_stool'; name='吧台凳'; cat='座椅'; hw=0.7; hh=1.5; seat=$true; seatY=1.6875;
    tex=[ordered]@{ I=$M.IRON; D=$M.DARK; S=$M.STR_DARK };
    box=@('5,0,5,11,2,11,I', '7,2,7,9,24,9,I', '4,24,4,12,27,12,D', '4,25,4,12,26,12,S', '5,12,5,11,13,11,I');
    recipe=@{ shaped=$true; shape=@(' I ', 'III', 'SSS'); ing=[ordered]@{ I='IRON_INGOT'; S='STICK' }; amount=1 } },
 
-@{ id='piano_stool'; name='琴凳'; cat='座椅'; hw=0.9; hh=0.8; seat=$true; seatY=0.5;
+@{ id='piano_stool'; name='琴凳'; cat='座椅'; hw=0.9; hh=0.8; seat=$true; seatY=0.8125;
    tex=[ordered]@{ D=$M.DARK; W=$M.WHITE };
    box=@('1,10,1,15,12,15,D', '2,12,2,14,13,14,W', '2,0,2,4,10,4,D', '12,0,2,14,10,4,D', '2,0,12,4,10,14,D', '12,0,12,14,10,14,D');
    recipe=@{ shaped=$true; shape=@(' D ', 'D D', ' D '); ing=[ordered]@{ D='DARK_OAK_PLANKS' }; amount=1 } },
 
-@{ id='sofa_long'; name='长条沙发'; cat='座椅'; hw=1.0; hh=1.0; sw=2; seat=$true; seatY=0.35; seats=2;
+@{ id='sofa_long'; name='长条沙发'; cat='座椅'; hw=1.0; hh=1.0; sw=2; seat=$true; seatY=0.4375; seats=2;
    tex=[ordered]@{ R=$M.RED; W=$M.WHITE; P=$M.OAK };
    box=@('0,0,2,32,4,14,R', '0,4,2,32,14,5,R', '0,4,5,3,9,14,R', '29,4,5,32,9,14,R', '3,4,6,15,7,14,W', '17,4,6,29,7,14,W', '1,0,2,3,3,4,P', '29,0,2,31,3,4,P');
    recipe=@{ shaped=$true; shape=@('RRR', 'RRR', 'P P'); ing=[ordered]@{ R='RED_WOOL'; P='OAK_PLANKS' }; amount=1 } },
 
-@{ id='bean_bag'; name='懒人沙发'; cat='座椅'; hw=1.0; hh=0.8; seat=$true; seatY=0.3;
+@{ id='bean_bag'; name='懒人沙发'; cat='座椅'; hw=1.0; hh=0.8; seat=$true; seatY=0.5;
    tex=[ordered]@{ G=$M.GREEN; W=$M.WHITE };
    box=@('0,0,3,16,7,13,G', '1,7,4,15,12,12,G', '2,12,5,14,14,11,W');
    recipe=@{ shaped=$false; mats=@('GREEN_WOOL', 'GREEN_WOOL', 'GREEN_WOOL', 'WHITE_WOOL'); amount=1 } },
@@ -244,7 +244,7 @@ $items = @(
    recipe=@{ shaped=$true; shape=@('L L', 'L L', 'DDD'); ing=[ordered]@{ L='STICK'; D='DARK_OAK_PLANKS' }; amount=1 } },
 
 # ================= 床 =================
-@{ id='bed'; name='单人床'; cat='床'; hw=1.0; hh=1.0; skipModel=$true; sd=2; seat=$true; seatY=0.26;
+@{ id='bed'; name='单人床'; cat='床'; hw=1.0; hh=1.0; skipModel=$true; sd=2; seat=$true; seatY=0.4375;
    tex=[ordered]@{ P=$M.OAK; R=$M.RED; W=$M.WHITE };
    recipe=@{ shaped=$true; shape=@('WWW', 'WPW', 'PPP'); ing=[ordered]@{ W='RED_WOOL'; P='OAK_PLANKS' }; amount=1 } },
 
@@ -348,13 +348,13 @@ $items = @(
    box=@('6,0,6,10,2,10,C', '4,2,4,12,6,12,C', '5,6,5,11,14,11,G', '3,14,3,13,16,13,S', '7,16,7,9,19,9,C');
    recipe=@{ shaped=$true; shape=@('CCC', 'CGC', 'CCC'); ing=[ordered]@{ C='COBBLESTONE'; G='GLOWSTONE' }; amount=1 } },
 
-@{ id='swing'; name='秋千'; cat='景观'; hw=1.0; hh=2.0; sw=2; seat=$true; seatY=0.7; seats=2;
+@{ id='swing'; name='秋千'; cat='景观'; hw=1.0; hh=2.0; sw=2; seat=$true; seatY=0.75; seats=2;
    tex=[ordered]@{ D=$M.DARK; O=$M.OAK };
    box=@('0,0,2,3,26,4,D', '29,0,2,32,26,4,D', '0,26,2,32,28,4,D', '2,10,12,30,12,14,O', '1,12,12,3,26,13,D', '29,12,12,31,26,13,D');
    recipe=@{ shaped=$true; shape=@('DDD', 'S S'); ing=[ordered]@{ D='DARK_OAK_PLANKS'; S='STICK' }; amount=1 } },
 
 # ================= 景观 =================
-@{ id='garden_bench'; name='花园长椅'; cat='景观'; hw=1.0; hh=1.2; seat=$true; seatY=0.62;
+@{ id='garden_bench'; name='花园长椅'; cat='景观'; hw=1.0; hh=1.2; seat=$true; seatY=0.625;
    tex=[ordered]@{ P=$M.OAK; S=$M.STONE };
    box=@('0,8,2,16,10,14,P', '0,10,2,16,18,4,P', '1,0,3,4,8,5,S', '12,0,3,15,8,5,S');
    recipe=@{ shaped=$true; shape=@('PPP', 'S S'); ing=[ordered]@{ P='OAK_PLANKS'; S='STONE' }; amount=1 } },
@@ -483,6 +483,8 @@ $lines.Add('#   size-depth    占地深度（格，模型局部 +z 方向）')
 $lines.Add('#   seat          能否坐人（右键坐下），配 seat-y 指定坐姿高度')
 $lines.Add('#   seats         可同时坐几人（默认 1，长凳/沙发可 2~3）')
 $lines.Add('#   seat-y        坐姿高度（相对脚下方块底部，格；0.45~0.65 常见）')
+$lines.Add('#   seat-points   精确座位点，模型像素坐标 [x, y, z]，x/z 以锚点方块中心为 8；多人座写多行')
+$lines.Add('#   solid         要不要挡人（默认：能坐的不挡、其余都挡；地毯这种平铺的写 false）')
 $lines.Add('#   light         能否开关灯（右键切换模型亮度，同时点亮周围）')
 $lines.Add('#   storage       容器槽位（9/18/27/36/54，0 或省略 = 不能储物）')
 $lines.Add('#   recipe        工作台合成配方；shaped: true 用 shape + ingredients，shaped: false 直接列材质')
@@ -494,6 +496,32 @@ $storageMap = @{
     cabinet = 27; drawer = 27; shelf = 27; wardrobe = 54; nightstand = 9
     tv_stand = 27; crate = 27; vanity = 27; shoe_rack = 9; fridge = 54; kitchen_counter = 9
 }
+
+# 精确座位点：模型像素坐标 [x, y, z]，x/z 以锚点方块中心为 8、y 以方块底部为 0。
+# 值是从模型里量出来的（坐垫/凳面的顶面中心），比按占地宽度均分准得多。
+# 单人座用 @(, @(x,y,z)) 包一层，否则 PowerShell 会把三元组摊平。
+$seatPointMap = @{
+    chair         = @(, @(8, 9, 8))
+    chair_spruce  = @(, @(8, 10, 8))
+    stool         = @(, @(8, 13, 8))
+    bench         = @(, @(8, 10, 8))
+    rocking_chair = @(, @(8, 10, 8))
+    armchair      = @(, @(8, 8, 10))
+    couch         = @(, @(8, 4, 10))
+    couch_blue    = @(, @(8, 7, 10))
+    office_chair  = @(, @(8, 10, 8))
+    bar_stool     = @(, @(8, 27, 8))
+    piano_stool   = @(, @(8, 13, 8))
+    sofa_long     = @(@(9, 7, 10), @(23, 7, 10))
+    bean_bag      = @(, @(8, 8, 9))
+    picnic_table  = @(@(16, 8, 2), @(16, 8, 14))
+    bed           = @(, @(8, 7, 16))
+    swing         = @(@(9, 12, 13), @(23, 12, 13))
+    garden_bench  = @(, @(8, 10, 8))
+}
+
+# 平铺在地上的家具不生成碰撞实体（否则踩不上去）
+$noSolid = @('rug')
 
 $currentCat = ''
 foreach ($item in $items) {
@@ -522,9 +550,19 @@ foreach ($item in $items) {
     if ($sd -ne 1) { $lines.Add("    size-depth: $sd") }
     if ($item.ContainsKey('seat') -and $item.seat) {
         $lines.Add('    seat: true')
-        $seatYText = if ($item.ContainsKey('seatY')) { ([double]$item.seatY).ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture) } else { '0.6' }
+        $seatYText = if ($item.ContainsKey('seatY')) { ([double]$item.seatY).ToString('0.####', [Globalization.CultureInfo]::InvariantCulture) } else { '0.6' }
         $lines.Add("    seat-y: $seatYText")
         if ($item.ContainsKey('seats')) { $lines.Add('    seats: ' + $item.seats) }
+        if ($seatPointMap.ContainsKey($item.id)) {
+            $lines.Add('    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0')
+            $lines.Add('    seat-points:')
+            foreach ($pt in $seatPointMap[$item.id]) {
+                $lines.Add("      - [$($pt[0]), $($pt[1]), $($pt[2])]")
+            }
+        }
+    }
+    if ($noSolid -contains $item.id) {
+        $lines.Add('    solid: false')
     }
     if ($item.ContainsKey('light') -and $item.light) {
         $lines.Add('    light: true')

@@ -5,7 +5,7 @@
   ],
   "gui_light": "front",
   "textures": {
-    "Q": "minecraft:block/smooth_quartz",
+    "Q": "minecraft:block/quartz_block_bottom",
     "S": "minecraft:block/stone_bricks",
     "D": "minecraft:block/dark_oak_planks"
   },

@@ -106,14 +106,11 @@ public final class FurnitureListener implements Listener {
     // ---------------------------------------------------------------- 左键拆除
     @EventHandler(ignoreCancelled = true)
     public void onAttack(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Interaction hitbox)) {
+        PlacedFurniture record = recordFor(event.getEntity());
+        if (record == null) {
             return;
         }
         if (!(event.getDamager() instanceof Player player)) {
-            return;
-        }
-        PlacedFurniture record = plugin.manager().byHitbox(hitbox.getUniqueId());
-        if (record == null) {
             return;
         }
         event.setCancelled(true);
@@ -124,12 +121,21 @@ public final class FurnitureListener implements Listener {
         breakFurniture(player, record);
     }
 
+    /** 命中的是不是这件家具：交互箱和挡人实体都算 */
+    private PlacedFurniture recordFor(Entity entity) {
+        if (entity instanceof Interaction hitbox) {
+            return plugin.manager().byHitbox(hitbox.getUniqueId());
+        }
+        if (plugin.manager().isCollision(entity)) {
+            Location at = entity.getLocation();
+            return plugin.manager().at(entity.getWorld(), at.getBlockX(), at.getBlockY(), at.getBlockZ());
+        }
+        return null;
+    }
+
     // ---------------------------------------------------------------- 右键：旋转 / 开关灯 / 坐下
     @EventHandler(ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        if (!(event.getRightClicked() instanceof Interaction hitbox)) {
-            return;
-        }
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
@@ -137,7 +143,7 @@ public final class FurnitureListener implements Listener {
         if (player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        PlacedFurniture record = plugin.manager().byHitbox(hitbox.getUniqueId());
+        PlacedFurniture record = recordFor(event.getRightClicked());
         if (record == null) {
             return;
         }
@@ -213,16 +219,28 @@ public final class FurnitureListener implements Listener {
             player.sendMessage(Text.colorize("&c这件家具已经坐满了（&f" + def.seats() + " &c人）"));
             return;
         }
-        // 多人座沿家具宽度方向等分落座：单人坐中间，双人分左右，三人三等分
-        double localX = (def.sizeWidth() - 1) / 2.0D;
-        if (def.seats() > 1) {
-            localX += ((double) taken / (def.seats() - 1) - 0.5D) * (def.sizeWidth() - 1);
+        // 优先用 furniture.yml 里的 seat-points（模型像素坐标），没写就按占地范围均分
+        double localX;
+        double localZ;
+        double seatHeight;
+        double[] point = def.seatPoint(taken);
+        if (point != null) {
+            localX = point[0];
+            localZ = point[2];
+            seatHeight = point[1];
+        } else {
+            // 多人座沿家具宽度方向等分落座：单人坐中间，双人分左右，三人三等分
+            localX = (def.sizeWidth() - 1) / 2.0D;
+            if (def.seats() > 1) {
+                localX += ((double) taken / (def.seats() - 1) - 0.5D) * (def.sizeWidth() - 1);
+            }
+            localZ = (def.sizeDepth() - 1) / 2.0D;
+            seatHeight = def.seatY();
         }
-        double localZ = (def.sizeDepth() - 1) / 2.0D;
         double[] offset = cn.mcfhm.furniture.FurnitureManager.worldOffset(record.yaw(), localX, localZ);
         Location seatAt = new Location(world,
                 record.x() + 0.5D + offset[0],
-                record.y() + def.seatY() + plugin.getConfig().getDouble("interact.seat-offset", 0.0D),
+                record.y() + seatHeight + plugin.getConfig().getDouble("interact.seat-offset", 0.0D),
                 record.z() + 0.5D + offset[1], record.yaw(), 0.0F);
         Entity spawned = world.spawnEntity(seatAt, EntityType.ARMOR_STAND);
         if (!(spawned instanceof ArmorStand stand)) {
@@ -354,10 +372,43 @@ public final class FurnitureListener implements Listener {
                 plugin.manager().syncLightBlock(record);
             }
         }
+
+        // 实体是在区块之后才进世界的，延后一 tick 再校正位置 / 补碰撞，避免读到半成品
+        if (plugin.manager().isLoaded()) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                org.bukkit.World world = event.getWorld();
+                if (world == null || !world.isChunkLoaded(cx, cz)) {
+                    return;
+                }
+                for (PlacedFurniture record : plugin.manager().chunkRecords(worldName, cx, cz)) {
+                    FurnitureDef def = plugin.registry().get(record.id());
+                    if (def == null) {
+                        continue;
+                    }
+                    plugin.manager().resyncEntity(record, def, world.getEntity(record.displayId()));
+                    plugin.manager().ensureCollisions(record);
+                }
+                // 孤儿挡人实体：家具已经没了，潜影贝还留着（拆除时那格没加载就会这样）
+                for (Entity entity : world.getChunkAt(cx, cz).getEntities()) {
+                    if (!plugin.manager().isCollision(entity)) {
+                        continue;
+                    }
+                    Location at = entity.getLocation();
+                    if (plugin.manager().at(world, at.getBlockX(), at.getBlockY(), at.getBlockZ()) == null) {
+                        entity.remove();
+                    }
+                }
+            }, 1L);
+        }
     }
 
     @EventHandler
     public void onPlayerDamage(EntityDamageEvent event) {
+        // 挡人的潜影贝不许被打掉（爆炸、火焰、近战都算）
+        if (plugin.manager().isCollision(event.getEntity())) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.getEntity() instanceof Player player && seats.containsKey(player.getUniqueId())) {
             stand(player);
         }

@@ -13,6 +13,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Shulker;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Transformation;
@@ -53,6 +54,8 @@ public final class FurnitureManager {
     private final List<Map<String, Object>> parked = new ArrayList<>();
     /** 灯具按区块索引：区块加载时只查这一格，不再全表遍历 */
     private final Map<String, List<PlacedFurniture>> lightsByChunk = new HashMap<>();
+    /** 全部家具的区块索引：区块加载时用来补碰撞实体、纠正实体位置 */
+    private final Map<String, List<PlacedFurniture>> byChunk = new HashMap<>();
     /** 单线程写盘：主线程只负责生成快照，IO 不卡 tick */
     private final ExecutorService writer = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "Furniture-Save");
@@ -62,6 +65,7 @@ public final class FurnitureManager {
     private boolean saveScheduled;
     private volatile boolean writerClosed;
     private volatile boolean shuttingDown;
+    private boolean loaded;
 
     public FurnitureManager(FurniturePlugin plugin) {
         this.plugin = plugin;
@@ -202,6 +206,8 @@ public final class FurnitureManager {
             byHitbox.put(hitbox.getUniqueId(), record);
         }
         registerCells(record, def);
+        // 挡人用的碰撞实体：Display 没有碰撞，不补这一层玩家会直接穿过去
+        spawnCollisions(record, def);
         if (def.light() && lit) {
             syncLightBlock(record);
         }
@@ -211,10 +217,7 @@ public final class FurnitureManager {
 
     /** 交互箱盖住整个占地范围，多格家具也能整块点到 */
     private Interaction spawnHitbox(World world, int x, int y, int z, FurnitureDef def, float yaw) {
-        double centerX = (def.sizeWidth() - 1) / 2.0D;
-        double centerZ = (def.sizeDepth() - 1) / 2.0D;
-        double[] offset = worldOffset(yaw, centerX, centerZ);
-        Location hitLoc = new Location(world, x + 0.5D + offset[0], y, z + 0.5D + offset[1], yaw, 0.0F);
+        Location hitLoc = hitboxLocation(world, x, y, z, def, yaw);
         Entity spawned = world.spawnEntity(hitLoc, EntityType.INTERACTION);
         if (!(spawned instanceof Interaction interaction)) {
             if (spawned != null) {
@@ -231,11 +234,151 @@ public final class FurnitureManager {
         return interaction;
     }
 
+    /** 交互箱的世界坐标（多格家具取占地范围中心） */
+    public static Location hitboxLocation(World world, int x, int y, int z, FurnitureDef def, float yaw) {
+        double centerX = (def.sizeWidth() - 1) / 2.0D;
+        double centerZ = (def.sizeDepth() - 1) / 2.0D;
+        double[] offset = worldOffset(yaw, centerX, centerZ);
+        return new Location(world, x + 0.5D + offset[0], y, z + 0.5D + offset[1], yaw, 0.0F);
+    }
+
+    // ---------------------------------------------------------------- 碰撞实体
+
+    /** 这件家具要不要挡人：全局开关 + 家具自己的 solid + 能坐的默认不挡 */
+    public boolean solidEnabled(FurnitureDef def) {
+        if (def == null || !def.solid()) {
+            return false;
+        }
+        if (!plugin.getConfig().getBoolean("collision.enabled", true)) {
+            return false;
+        }
+        return !(def.seat() && plugin.getConfig().getBoolean("collision.skip-seatable", true));
+    }
+
+    /**
+     * 每个占地格塞一只隐形潜影贝。
+     * Display / Interaction 都没有碰撞，想让玩家「走不过去」只能靠实体，潜影贝是原版里唯一
+     * 1×1×1、无 AI、能被完全隐藏的实心实体。
+     */
+    private void spawnCollisions(PlacedFurniture record, FurnitureDef def) {
+        World world = Bukkit.getWorld(record.worldName());
+        if (world == null || !solidEnabled(def)) {
+            return;
+        }
+        removeCollisions(record);
+        for (int[] offset : cells(def, record.yaw())) {
+            Shulker shulker = spawnCollision(world, record, def, record.x() + offset[0], record.z() + offset[1]);
+            if (shulker != null) {
+                record.collisionIds().add(shulker.getUniqueId());
+            }
+        }
+    }
+
+    private Shulker spawnCollision(World world, PlacedFurniture record, FurnitureDef def, int cellX, int cellZ) {
+        Location at = new Location(world, cellX + 0.5D, record.y(), cellZ + 0.5D);
+        try {
+            return world.spawn(at, Shulker.class, shulker -> {
+                // 不吃不喝不动不看人：只要那个 1×1×1 的碰撞箱
+                shulker.setAI(false);
+                shulker.setInvisible(true);
+                shulker.setSilent(true);
+                shulker.setInvulnerable(true);
+                shulker.setCollidable(true);
+                shulker.setGravity(false);
+                shulker.setPersistent(true);
+                shulker.setRemoveWhenFarAway(false);
+                shulker.setCanPickupItems(false);
+                shulker.setLootTable(null);
+                shulker.setPeek((byte) 0);
+                shulker.setAttachedFace(org.bukkit.block.BlockFace.DOWN);
+                shulker.getPersistentDataContainer().set(plugin.collisionKey(),
+                        PersistentDataType.STRING, def.id());
+                shulker.getPersistentDataContainer().set(plugin.furnitureIdKey(),
+                        PersistentDataType.STRING, def.id());
+            });
+        } catch (Exception ex) {
+            plugin.getLogger().warning("生成 " + def.id() + " 的碰撞实体失败: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /** 拆掉这件家具所有碰撞实体 */
+    public void removeCollisions(PlacedFurniture record) {
+        if (record.collisionIds().isEmpty()) {
+            return;
+        }
+        World world = Bukkit.getWorld(record.worldName());
+        if (world != null) {
+            for (UUID id : record.collisionIds()) {
+                Entity entity = world.getEntity(id);
+                if (entity != null) {
+                    entity.remove();
+                }
+            }
+        }
+        record.collisionIds().clear();
+    }
+
+    /** 补回丢失的碰撞实体（区块重载 / 存档没写 UUID 时） */
+    public void ensureCollisions(PlacedFurniture record) {
+        FurnitureDef def = plugin.registry().get(record.id());
+        World world = Bukkit.getWorld(record.worldName());
+        if (def == null || world == null) {
+            return;
+        }
+        if (!solidEnabled(def)) {
+            removeCollisions(record);
+            return;
+        }
+        java.util.Set<String> need = new java.util.HashSet<>();
+        for (int[] offset : cells(def, record.yaw())) {
+            need.add((record.x() + offset[0]) + "," + record.y() + "," + (record.z() + offset[1]));
+        }
+        // 按「方块坐标」认已有实体，而不是按 UUID：区块刚加载时 world.getEntity(uuid) 可能还查不到，
+        // 按 UUID 判断就会重复生成一堆潜影贝。
+        Map<String, Shulker> existing = new HashMap<>();
+        Location center = new Location(world, record.x() + 0.5D, record.y() + 0.5D, record.z() + 0.5D);
+        double radius = Math.max(def.sizeWidth(), def.sizeDepth()) + 2.0D;
+        for (Entity entity : world.getNearbyEntities(center, radius, 2.0D, radius)) {
+            if (!(entity instanceof Shulker shulker) || !isCollision(shulker)) {
+                continue;
+            }
+            String key = shulker.getLocation().getBlockX() + "," + shulker.getLocation().getBlockY()
+                    + "," + shulker.getLocation().getBlockZ();
+            if (need.contains(key)) {
+                existing.putIfAbsent(key, shulker);
+            }
+        }
+        record.collisionIds().clear();
+        for (String key : need) {
+            Shulker shulker = existing.get(key);
+            if (shulker == null) {
+                String[] parts = key.split(",");
+                shulker = spawnCollision(world, record, def, Integer.parseInt(parts[0]), Integer.parseInt(parts[2]));
+            }
+            if (shulker != null) {
+                record.collisionIds().add(shulker.getUniqueId());
+            }
+        }
+        for (Shulker shulker : existing.values()) {
+            if (!record.collisionIds().contains(shulker.getUniqueId())) {
+                shulker.remove();
+            }
+        }
+    }
+
+    /** 是不是本插件生成的挡人实体 */
+    public boolean isCollision(Entity entity) {
+        return entity instanceof Shulker
+                && entity.getPersistentDataContainer().has(plugin.collisionKey(), PersistentDataType.STRING);
+    }
+
     private void registerCells(PlacedFurniture record, FurnitureDef def) {
         for (int[] offset : cells(def, record.yaw())) {
             occupancy.put(new Cell(record.worldName(), record.x() + offset[0], record.y(), record.z() + offset[1]), record);
         }
         indexLight(record, def, true);
+        indexChunk(record, def, true);
     }
 
     private void unregisterCells(PlacedFurniture record, FurnitureDef def) {
@@ -243,6 +386,45 @@ public final class FurnitureManager {
             occupancy.remove(new Cell(record.worldName(), record.x() + offset[0], record.y(), record.z() + offset[1]), record);
         }
         indexLight(record, def, false);
+        indexChunk(record, def, false);
+    }
+
+    /** 家具按占用格子的区块建索引，区块加载时只处理这一格的家具 */
+    private void indexChunk(PlacedFurniture record, FurnitureDef def, boolean add) {
+        if (def == null) {
+            return;
+        }
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        for (int[] offset : cells(def, record.yaw())) {
+            int cx = (record.x() + offset[0]) >> 4;
+            int cz = (record.z() + offset[1]) >> 4;
+            long packed = ((long) cx << 32) ^ (cz & 0xffffffffL);
+            if (!seen.add(packed)) {
+                continue;
+            }
+            String key = chunkKey(record.worldName(), cx, cz);
+            List<PlacedFurniture> list = byChunk.get(key);
+            if (add) {
+                if (list == null) {
+                    list = new ArrayList<>(2);
+                    byChunk.put(key, list);
+                }
+                if (!list.contains(record)) {
+                    list.add(record);
+                }
+            } else if (list != null) {
+                list.remove(record);
+                if (list.isEmpty()) {
+                    byChunk.remove(key);
+                }
+            }
+        }
+    }
+
+    /** 某个区块里的全部家具（已建索引） */
+    public List<PlacedFurniture> chunkRecords(String world, int chunkX, int chunkZ) {
+        List<PlacedFurniture> list = byChunk.get(chunkKey(world, chunkX, chunkZ));
+        return list == null ? List.of() : list;
     }
 
     private static String chunkKey(String world, int cx, int cz) {
@@ -321,11 +503,11 @@ public final class FurnitureManager {
             Entity hitbox = world.getEntity(record.hitboxId());
             if (hitbox instanceof Interaction interaction) {
                 interaction.setRotation(newYaw, 0.0F);
-                double[] offset = worldOffset(newYaw, (def.sizeWidth() - 1) / 2.0D, (def.sizeDepth() - 1) / 2.0D);
-                interaction.teleport(new Location(world,
-                        record.x() + 0.5D + offset[0], record.y(), record.z() + 0.5D + offset[1], newYaw, 0.0F));
+                interaction.teleport(hitboxLocation(world, record.x(), record.y(), record.z(), def, newYaw));
             }
         }
+        // 占地方格变了，碰撞实体也要跟着挪
+        spawnCollisions(record, def);
         saveAll();
         return true;
     }
@@ -400,6 +582,7 @@ public final class FurnitureManager {
                     hitbox.remove();
                 }
             }
+            removeCollisions(record);
             if (def != null && def.storage() > 0 && !record.contents().isEmpty()) {
                 plugin.storage().dropContents(record);
             }
@@ -556,6 +739,13 @@ public final class FurnitureManager {
             if (record.owner() != null) {
                 entry.put("owner", record.owner().toString());
             }
+            if (!record.collisionIds().isEmpty()) {
+                List<String> colliders = new ArrayList<>(record.collisionIds().size());
+                for (UUID id : record.collisionIds()) {
+                    colliders.add(id.toString());
+                }
+                entry.put("collision", colliders);
+            }
             if (!record.contents().isEmpty()) {
                 List<String> packed = new ArrayList<>(record.contents().size());
                 for (ItemStack stack : record.contents()) {
@@ -607,6 +797,7 @@ public final class FurnitureManager {
         byHitbox.clear();
         occupancy.clear();
         lightsByChunk.clear();
+        byChunk.clear();
         parked.clear();
         if (!dataFile.exists()) {
             return;
@@ -692,6 +883,10 @@ public final class FurnitureManager {
                 }
                 registerCells(record, def);
                 readContents(record, raw.get("contents"));
+                readCollisionIds(record, raw.get("collision"));
+                // 区块重载 / 世界被编辑过之后，实体可能不在原位，按存档坐标摆回去
+                resyncEntity(record, def, display);
+                ensureCollisions(record);
                 if (def.light() && lit && display instanceof Display d) {
                     d.setBrightness(new Display.Brightness(15, 15));
                 }
@@ -700,6 +895,12 @@ public final class FurnitureManager {
             }
         }
         plugin.getLogger().info("已恢复已放置家具 " + records.size() + " 个");
+        loaded = true;
+    }
+
+    /** 存档读完没有：没读完之前不要清理"孤儿"实体，否则会把还没登记的碰撞体删掉 */
+    public boolean isLoaded() {
+        return loaded;
     }
 
     /** 容器内容的读档：新版是 Base64(物品字节)，同时兼容旧的 ItemStack / Map 序列化 */
@@ -757,6 +958,60 @@ public final class FurnitureManager {
             }
         }
         return null;
+    }
+
+    /** 读档时把碰撞实体 UUID 读回来（旧存档没有这一项，后面 ensureCollisions 会补） */
+    private static void readCollisionIds(PlacedFurniture record, Object rawValue) {
+        if (!(rawValue instanceof List<?> list)) {
+            return;
+        }
+        for (Object element : list) {
+            if (element == null) {
+                continue;
+            }
+            try {
+                record.collisionIds().add(UUID.fromString(String.valueOf(element)));
+            } catch (IllegalArgumentException ignored) {
+                // 手改坏的 UUID 直接丢
+            }
+        }
+    }
+
+    /**
+     * 把显示实体 / 交互箱摆回存档坐标。
+     * 区块重载、WorldEdit 搬过方块、旧版本存档都可能让实体错位，人站上去就会被"穿过"。
+     */
+    public void resyncEntity(PlacedFurniture record, FurnitureDef def, Entity display) {
+        World world = Bukkit.getWorld(record.worldName());
+        if (world == null || def == null) {
+            return;
+        }
+        if (display != null) {
+            Location target = new Location(world, record.x() + 0.5D, record.y() + 0.5D, record.z() + 0.5D,
+                    record.yaw(), 0.0F);
+            if (!sameSpot(display.getLocation(), target)) {
+                display.teleport(target);
+            } else if (Math.abs(normalize(display.getYaw()) - record.yaw()) > 0.5F) {
+                display.setRotation(record.yaw(), 0.0F);
+            }
+        }
+        if (record.hitboxId() != null) {
+            Entity hitbox = world.getEntity(record.hitboxId());
+            if (hitbox instanceof Interaction interaction) {
+                Location target = hitboxLocation(world, record.x(), record.y(), record.z(), def, record.yaw());
+                if (!sameSpot(interaction.getLocation(), target)) {
+                    interaction.teleport(target);
+                }
+                interaction.setRotation(record.yaw(), 0.0F);
+            }
+        }
+    }
+
+    private static boolean sameSpot(Location a, Location b) {
+        if (a == null || b == null || a.getWorld() != b.getWorld()) {
+            return false;
+        }
+        return a.distanceSquared(b) < 0.0025D;
     }
 
     private static float normalize(float yaw) {

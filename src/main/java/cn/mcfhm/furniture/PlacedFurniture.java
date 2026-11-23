@@ -22,6 +22,8 @@ public final class PlacedFurniture {
     private UUID owner;
     /** 容器类家具的物品内容（非容器家具始终为空） */
     private final java.util.List<org.bukkit.inventory.ItemStack> contents = new java.util.ArrayList<>();
+    /** 挡人的碰撞实体（隐形潜影贝），占地几格就有几个 */
+    private final java.util.List<UUID> collisionIds = new java.util.ArrayList<>();
 
     public PlacedFurniture(String id, String worldName, int x, int y, int z, float yaw, UUID displayId, UUID hitboxId) {
         this(id, worldName, x, y, z, yaw, false, displayId, hitboxId);
@@ -99,6 +101,11 @@ public final class PlacedFurniture {
     /** 可变列表，容器读档时直接往里塞物品 */
     public java.util.List<org.bukkit.inventory.ItemStack> contents() {
         return contents;
+    }
+
+    /** 碰撞实体 UUID（隐形潜影贝），拆除 / 旋转时要一起处理 */
+    public java.util.List<UUID> collisionIds() {
+        return collisionIds;
     }
 
     /** 锚点方块中心的世界坐标；世界没加载时返回 null */

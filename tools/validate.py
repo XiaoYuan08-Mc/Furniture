@@ -1,11 +1,11 @@
-import json, os, sys, zipfile, collections
+import json, os, sys, zipfile, collections, glob
 import yaml
 
 root = r"G:\插件\家具"
 res = os.path.join(root, "src", "main", "resources")
 yml = os.path.join(res, "furniture.yml")
 models_dir = os.path.join(res, "pack", "assets", "furniture", "models")
-jar = os.path.join(root, "build", "libs", "Furniture-0.3.1.jar")
+jar = os.path.join(root, "build", "libs", "Furniture-0.4.0.jar")
 
 data = yaml.safe_load(open(yml, encoding="utf-8"))
 furn = data["furniture"]
@@ -74,3 +74,59 @@ if os.path.exists(jar):
         missing = [f for f in furn if f"pack/assets/furniture/models/{furn[f].get('model','furniture:'+f).partition(':')[2]}.json" not in names]
         print("jar 缺模型:", missing)
 
+
+# ---------------------------------------------------------------- 座位点核对
+seat_bad = []
+for fid, d in furn.items():
+    pts = d.get("seat-points")
+    if not pts:
+        continue
+    if not d.get("seat"):
+        seat_bad.append(f"{fid}: 写了 seat-points 但 seat 不是 true")
+        continue
+    sw = d.get("size-width", 1)
+    sd = d.get("size-depth", 1)
+    if len(pts) > 1 and len(pts) != d.get("seats", 1):
+        seat_bad.append(f"{fid}: seat-points {len(pts)} 个 / seats {d.get('seats', 1)}")
+    for p in pts:
+        if not isinstance(p, list) or len(p) != 3:
+            seat_bad.append(f"{fid}: seat-points 有一项不是 [x, y, z]: {p}")
+            continue
+        x, y, z = p
+        if not (0 <= x <= sw * 16 and 0 <= z <= sd * 16):
+            seat_bad.append(f"{fid}: 座位点 {p} 超出占地 {sw}x{sd} 格")
+        if not (0 < y <= 32):
+            seat_bad.append(f"{fid}: 座位点 {p} 高度不在 0~2 格之间")
+        if abs(y / 16.0 - d.get("seat-y", 0.6)) > 0.001:
+            seat_bad.append(f"{fid}: seat-y {d.get('seat-y')} 和 seat-points 的 {y / 16.0:.4f} 对不上（以 seat-points 为准，只是提醒）")
+print("座位点问题:", len(seat_bad))
+for p in seat_bad:
+    print("  ", p)
+
+# ---------------------------------------------------------------- 贴图名核对
+# 26.3 改过一批原版贴图文件名（比如 smooth_quartz 没了），引用对不上客户端就画紫黑方块。
+client_jar = os.environ.get("MC_CLIENT_JAR", r"D:\mc263\client.jar")
+if os.path.exists(client_jar):
+    with zipfile.ZipFile(client_jar) as z:
+        vanilla = {n[len("assets/minecraft/textures/block/"):-4]
+                   for n in z.namelist()
+                   if n.startswith("assets/minecraft/textures/block/") and n.endswith(".png")}
+    tex_bad = {}
+    for path in glob.glob(os.path.join(models_dir, "*.json")):
+        try:
+            model = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        for key, value in (model.get("textures") or {}).items():
+            if not isinstance(value, str):
+                continue
+            if value.startswith("minecraft:block/"):
+                if value.split("/", 1)[1] not in vanilla:
+                    tex_bad.setdefault(os.path.basename(path), []).append(value)
+            elif not value.startswith("furniture:"):
+                tex_bad.setdefault(os.path.basename(path), []).append(value)
+    print("贴图缺失:", len(tex_bad))
+    for name, refs in tex_bad.items():
+        print("  ", name, "->", sorted(set(refs)))
+else:
+    print("找不到客户端 jar，跳过贴图核对（可用环境变量 MC_CLIENT_JAR 指定）")

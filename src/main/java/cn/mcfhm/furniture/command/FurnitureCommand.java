@@ -336,6 +336,21 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Text.colorize("&a已" + (lit ? "开灯" : "关灯") + " &f" + def.name()));
     }
 
+    /** 座位点转成一句话，方便验收时对一遍 /furniture info 的输出 */
+    private static String seatPointsText(FurnitureDef def) {
+        if (def.seatPoints() == null || def.seatPoints().isEmpty()) {
+            return "无（按占地均分, seat-y=" + def.seatY() + "）";
+        }
+        StringBuilder text = new StringBuilder();
+        for (double[] point : def.seatPoints()) {
+            if (text.length() > 0) {
+                text.append(" / ");
+            }
+            text.append(String.format(java.util.Locale.ROOT, "%.2f,%.2f,%.2f", point[0], point[1], point[2]));
+        }
+        return text.toString();
+    }
+
     /** 查看某件家具的完整状态（含容器内容），调试与验收用 */
     private void info(CommandSender sender, String[] args) {
         World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
@@ -368,6 +383,14 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(Text.colorize("&7占地=&f" + def.sizeWidth() + "x" + def.sizeDepth()
                     + " &7坐=&f" + def.seat() + " &7人数=&f" + def.seats()
                     + " &7灯=&f" + def.light() + " &7容器=&f" + def.storage()));
+            if (def.seat()) {
+                sender.sendMessage(Text.colorize("&7挡人=&f" + plugin.manager().solidEnabled(def)
+                        + " &7座位点=&f" + seatPointsText(def)
+                        + " &7碰撞实体=&f" + record.collisionIds().size()));
+            } else {
+                sender.sendMessage(Text.colorize("&7挡人=&f" + plugin.manager().solidEnabled(def)
+                        + " &7碰撞实体=&f" + record.collisionIds().size()));
+            }
         }
         sender.sendMessage(Text.colorize("&7容器内容=&f" + FurnitureStorage.itemCount(record) + " &7件"));
         World recordWorld = Bukkit.getWorld(record.worldName());

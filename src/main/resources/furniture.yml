@@ -13,6 +13,9 @@
 #   seat          能否坐人（右键坐下），配 seat-y 指定坐姿高度
 #   seats         可同时坐几人（默认 1，长凳/沙发可 2~3）
 #   seat-y        坐姿高度（相对脚下方块底部，格；0.45~0.65 常见）
+#   seat-points   精确座位点，模型像素坐标 [x, y, z]，x/z 以锚点方块中心为 8；多人座写多行
+#                 （不写就按占地宽度均分，长凳/野餐桌这种最好写明）
+#   solid         要不要挡人（默认：能坐的不挡、其余都挡；地毯这种平铺的写 false）
 #   light         能否开关灯（右键切换模型亮度，同时点亮周围）
 #   storage       容器槽位（9/18/27/36/54，0 或省略 = 不能储物）
 #   recipe        工作台合成配方；shaped: true 用 shape + ingredients，shaped: false 直接列材质
@@ -31,7 +34,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.62
+    seat-y: 0.5625
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 9, 8]
     recipe:
       shaped: true
       shape:
@@ -52,7 +58,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.62
+    seat-y: 0.625
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 10, 8]
     recipe:
       shaped: true
       shape:
@@ -73,7 +82,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.5
+    seat-y: 0.8125
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 13, 8]
     recipe:
       shaped: false
       ingredients:
@@ -94,7 +106,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.62
+    seat-y: 0.625
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 10, 8]
     recipe:
       shaped: true
       shape:
@@ -116,7 +131,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.62
+    seat-y: 0.625
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 10, 8]
     recipe:
       shaped: true
       shape:
@@ -139,7 +157,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.42
+    seat-y: 0.5
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 8, 10]
     recipe:
       shaped: true
       shape:
@@ -162,7 +183,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.45
+    seat-y: 0.25
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 4, 10]
     recipe:
       shaped: true
       shape:
@@ -186,7 +210,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.35
+    seat-y: 0.4375
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 7, 10]
     recipe:
       shaped: true
       shape:
@@ -209,7 +236,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.65
+    seat-y: 0.625
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 10, 8]
     recipe:
       shaped: true
       shape:
@@ -232,7 +262,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.92
+    seat-y: 1.6875
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 27, 8]
     recipe:
       shaped: true
       shape:
@@ -255,7 +288,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.5
+    seat-y: 0.8125
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 13, 8]
     recipe:
       shaped: true
       shape:
@@ -278,7 +314,11 @@ furniture:
     offset-y: 0.0
     size-width: 2
     seat: true
-    seat-y: 0.35
+    seat-y: 0.4375
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [9, 7, 10]
+      - [23, 7, 10]
     seats: 2
     recipe:
       shaped: true
@@ -302,7 +342,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.3
+    seat-y: 0.5
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 8, 9]
     recipe:
       shaped: false
       ingredients:
@@ -428,6 +471,10 @@ furniture:
     size-width: 2
     seat: true
     seat-y: 0.5
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [16, 8, 2]
+      - [16, 8, 14]
     seats: 2
     recipe:
       shaped: true
@@ -823,7 +870,10 @@ furniture:
     offset-y: 0.0
     size-depth: 2
     seat: true
-    seat-y: 0.26
+    seat-y: 0.4375
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 7, 16]
     recipe:
       shaped: true
       shape:
@@ -1260,7 +1310,11 @@ furniture:
     offset-y: 0.0
     size-width: 2
     seat: true
-    seat-y: 0.7
+    seat-y: 0.75
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [9, 12, 13]
+      - [23, 12, 13]
     seats: 2
     recipe:
       shaped: true
@@ -1283,7 +1337,10 @@ furniture:
     scale: 1.0
     offset-y: 0.0
     seat: true
-    seat-y: 0.62
+    seat-y: 0.625
+    # 模型像素坐标 [x, y, z]：x/z 以锚点方块中心为 8，y 以方块底部为 0
+    seat-points:
+      - [8, 10, 8]
     recipe:
       shaped: true
       shape:
@@ -1536,6 +1593,7 @@ furniture:
     transform: NONE
     scale: 1.0
     offset-y: 0.0
+    solid: false
     recipe:
       shaped: true
       shape:

@@ -24,6 +24,8 @@ import org.bukkit.entity.ItemDisplay;
  * @param light        是否可开关灯（右键切换模型亮度）
  * @param storage      容器槽位数量（0 = 不能储物；9/18/27/36/54）
  * @param seats        同时能坐几个人（1 = 单人，沙发这类可以 2~3）
+ * @param solid        是否生成碰撞实体（挡人不让穿过）
+ * @param seatPoints   精确座位点（本地坐标，单位格；相对锚点方块中心），空则按占地范围均分
  */
 public record FurnitureDef(
         String id,
@@ -42,10 +44,20 @@ public record FurnitureDef(
         float seatY,
         boolean light,
         int storage,
-        int seats
+        int seats,
+        boolean solid,
+        java.util.List<double[]> seatPoints
 ) {
 
     public String name() {
         return Text.colorize(rawName);
+    }
+
+    /** 第 index 个人的座位点（本地格坐标 x,y,z），没有自定义点返回 null */
+    public double[] seatPoint(int index) {
+        if (seatPoints == null || seatPoints.isEmpty()) {
+            return null;
+        }
+        return seatPoints.get(Math.floorMod(index, seatPoints.size()));
     }
 }

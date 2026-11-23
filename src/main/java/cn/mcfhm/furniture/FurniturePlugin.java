@@ -23,6 +23,8 @@ public final class FurniturePlugin extends JavaPlugin {
             java.util.UUID.nameUUIDFromBytes("Furniture:resourcepack".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
     private final NamespacedKey furnitureIdKey = new NamespacedKey(this, "furniture_id");
+    /** 挡人用的隐形潜影贝打这个标记，区块重载时靠它认出孤儿实体 */
+    private final NamespacedKey collisionKey = new NamespacedKey(this, "furniture_collision");
     private FurnitureRegistry registry;
     private FurnitureRecipes recipes;
     private FurnitureManager manager;
@@ -98,6 +100,10 @@ public final class FurniturePlugin extends JavaPlugin {
 
     public NamespacedKey furnitureIdKey() {
         return furnitureIdKey;
+    }
+
+    public NamespacedKey collisionKey() {
+        return collisionKey;
     }
 
     public FurnitureRegistry registry() {
