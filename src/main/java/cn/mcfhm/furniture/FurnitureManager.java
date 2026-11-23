@@ -13,6 +13,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Shulker;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -225,13 +226,18 @@ public final class FurnitureManager {
             }
             return null;
         }
+        shapeHitbox(interaction, def, yaw);
+        return interaction;
+    }
+
+    /** 交互箱的尺寸 / 响应 / 归属标签；重生成和纠错时都走同一套，避免恢复后尺寸变小点不到 */
+    private void shapeHitbox(Interaction interaction, FurnitureDef def, float yaw) {
         interaction.setInteractionWidth(def.hitboxWidth() * def.sizeWidth());
         interaction.setInteractionHeight(def.hitboxHeight());
         interaction.setResponsive(true);
         interaction.setPersistent(true);
         interaction.setRotation(yaw, 0.0F);
         interaction.getPersistentDataContainer().set(plugin.furnitureIdKey(), PersistentDataType.STRING, def.id());
-        return interaction;
     }
 
     /** 交互箱的世界坐标（多格家具取占地范围中心） */
@@ -800,102 +806,143 @@ public final class FurnitureManager {
         byChunk.clear();
         parked.clear();
         if (!dataFile.exists()) {
+            loaded = true;
             return;
         }
         YamlConfiguration config = YamlConfiguration.loadConfiguration(dataFile);
         List<Map<?, ?>> list = config.getMapList("furniture");
+        List<Map<String, Object>> retry = new ArrayList<>();
         for (Map<?, ?> raw : list) {
             try {
-                Object idValue = raw.get("id");
-                Object worldValue = raw.get("world");
-                Object displayValue = raw.get("display");
-                if (idValue == null || worldValue == null || displayValue == null) {
-                    continue;
-                }
-                String id = idValue.toString();
-                String worldName = worldValue.toString();
-                int x = toInt(raw.get("x"));
-                int y = toInt(raw.get("y"));
-                int z = toInt(raw.get("z"));
-                float yaw = toFloat(raw.get("yaw"), 0.0F);
-                boolean lit = raw.get("lit") != null && Boolean.parseBoolean(raw.get("lit").toString());
-                UUID displayId = UUID.fromString(displayValue.toString());
-                Object hitboxValue = raw.get("hitbox");
-                UUID hitboxId = hitboxValue == null ? null : UUID.fromString(hitboxValue.toString());
-                UUID ownerId = null;
-                Object ownerValue = raw.get("owner");
-                if (ownerValue != null && !String.valueOf(ownerValue).isBlank()) {
-                    try {
-                        ownerId = UUID.fromString(ownerValue.toString());
-                    } catch (IllegalArgumentException ignored) {
-                        // 老存档 / 手改坏的 owner 当公共家具处理
-                    }
-                }
-
-                FurnitureDef def = plugin.registry().get(id);
-                World world = Bukkit.getWorld(worldName);
-                if (def == null) {
-                    plugin.getLogger().warning("家具 " + id + " 的定义已不存在，跳过 " + worldName + " " + x + "," + y + "," + z);
-                    continue;
-                }
-                if (world == null) {
-                    // 世界没加载（多世界服常见）：保留原始记录，等世界加载后重启恢复
-                    plugin.getLogger().warning("世界 " + worldName + " 未加载，家具 " + id + " 保留在存档里");
-                    Map<String, Object> keep = new LinkedHashMap<>();
-                    for (Map.Entry<?, ?> rawEntry : raw.entrySet()) {
-                        keep.put(String.valueOf(rawEntry.getKey()), rawEntry.getValue());
-                    }
-                    parked.add(keep);
-                    continue;
-                }
-                // 先把占地范围内的区块都载入，让持久化实体有机会恢复（多格家具可能跨区块）
-                for (int[] offset : cells(def, yaw)) {
-                    world.getChunkAt((x + offset[0]) >> 4, (z + offset[1]) >> 4);
-                }
-                Entity display = world.getEntity(displayId);
-                if (display == null) {
-                    plugin.getLogger().warning("家具 " + id + " 的显示实体丢失，重新生成 (" + worldName + " " + x + "," + y + "," + z + ")");
-                    // 重新生成后把原来的容器内容补回去，别把玩家存的东西弄丢
-                    PlacedFurniture fresh = spawn(world, x, y, z, def, yaw, lit, ownerId);
-                    if (fresh != null) {
-                        readContents(fresh, raw.get("contents"));
-                        saveAll();
-                    }
-                    continue;
-                }
-                if (hitboxId != null && world.getEntity(hitboxId) == null) {
-                    plugin.getLogger().warning("家具 " + id + " 的碰撞箱实体丢失，交互可能失效 (" + worldName + " " + x + "," + y + "," + z + ")");
-                }
-                PlacedFurniture record = new PlacedFurniture(id, worldName, x, y, z, yaw, lit, displayId, hitboxId);
-                record.owner(ownerId);
-                if (hitboxId == null || world.getEntity(hitboxId) == null) {
-                    // 老数据没有 hitbox 字段，或实体丢失：就近找一个同 ID 且没被登记的交互箱
-                    Interaction found = findLooseHitbox(world, x, y, z, id);
-                    if (found != null) {
-                        hitboxId = found.getUniqueId();
-                        record.hitboxId(hitboxId);
-                    }
-                }
-                records.add(record);
-                byDisplay.put(displayId, record);
-                if (hitboxId != null) {
-                    byHitbox.put(hitboxId, record);
-                }
-                registerCells(record, def);
-                readContents(record, raw.get("contents"));
-                readCollisionIds(record, raw.get("collision"));
-                // 区块重载 / 世界被编辑过之后，实体可能不在原位，按存档坐标摆回去
-                resyncEntity(record, def, display);
-                ensureCollisions(record);
-                if (def.light() && lit && display instanceof Display d) {
-                    d.setBrightness(new Display.Brightness(15, 15));
+                if (!restoreOne(raw, true)) {
+                    retry.add(copyRaw(raw));
                 }
             } catch (Exception ex) {
                 plugin.getLogger().warning("读取家具记录失败: " + ex.getMessage());
             }
         }
-        plugin.getLogger().info("已恢复已放置家具 " + records.size() + " 个");
         loaded = true;
+        plugin.getLogger().info("已恢复已放置家具 " + records.size() + " 个"
+                + (retry.isEmpty() ? "" : "，另有 " + retry.size() + " 件等待实体加载后确认"));
+        if (!retry.isEmpty() || !records.isEmpty()) {
+            // 显示实体 / 交互箱进世界比记录晚：延后一 tick 再确认一遍。
+            // 直接在本 tick 就判定「实体丢失」会重复生成家具，或者留下点不动的空壳。
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                for (Map<String, Object> raw : retry) {
+                    try {
+                        restoreOne(raw, false);
+                    } catch (Exception ex) {
+                        plugin.getLogger().warning("二次恢复家具失败: " + ex.getMessage());
+                    }
+                }
+                recoverHitboxes();
+            }, 1L);
+        }
+    }
+
+    private static Map<String, Object> copyRaw(Map<?, ?> raw) {
+        Map<String, Object> keep = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : raw.entrySet()) {
+            keep.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        return keep;
+    }
+
+    /**
+     * 恢复单条记录。
+     *
+     * @param firstPass true 表示第一次尝试；显示实体查不到时先不动手，返回 false 交给下一 tick 重试，
+     *                  避免实体只是「还没进世界」却被当成丢失而重复生成一件家具。
+     * @return false = 需要下一 tick 再试；true = 已处理（恢复、保留或判定丢失重建）
+     */
+    private boolean restoreOne(Map<?, ?> raw, boolean firstPass) {
+        Object idValue = raw.get("id");
+        Object worldValue = raw.get("world");
+        Object displayValue = raw.get("display");
+        if (idValue == null || worldValue == null || displayValue == null) {
+            return true;
+        }
+        String id = idValue.toString();
+        String worldName = worldValue.toString();
+        int x = toInt(raw.get("x"));
+        int y = toInt(raw.get("y"));
+        int z = toInt(raw.get("z"));
+        float yaw = toFloat(raw.get("yaw"), 0.0F);
+        boolean lit = raw.get("lit") != null && Boolean.parseBoolean(raw.get("lit").toString());
+        UUID displayId = UUID.fromString(displayValue.toString());
+        Object hitboxValue = raw.get("hitbox");
+        UUID hitboxId = hitboxValue == null ? null : UUID.fromString(hitboxValue.toString());
+        UUID ownerId = null;
+        Object ownerValue = raw.get("owner");
+        if (ownerValue != null && !String.valueOf(ownerValue).isBlank()) {
+            try {
+                ownerId = UUID.fromString(ownerValue.toString());
+            } catch (IllegalArgumentException ignored) {
+                // 老存档 / 手改坏的 owner 当公共家具处理
+            }
+        }
+
+        FurnitureDef def = plugin.registry().get(id);
+        World world = Bukkit.getWorld(worldName);
+        if (def == null) {
+            plugin.getLogger().warning("家具 " + id + " 的定义已不存在，跳过 " + worldName + " " + x + "," + y + "," + z);
+            return true;
+        }
+        if (world == null) {
+            // 世界没加载（多世界服常见）：保留原始记录，等世界加载后重启恢复
+            plugin.getLogger().warning("世界 " + worldName + " 未加载，家具 " + id + " 保留在存档里");
+            parked.add(copyRaw(raw));
+            return true;
+        }
+        if (byDisplay.containsKey(displayId)) {
+            // 第二次尝试时已经被别的记录接管，避免重复登记
+            return true;
+        }
+        // 先把占地范围内的区块都载入，让持久化实体有机会恢复（多格家具可能跨区块）
+        for (int[] offset : cells(def, yaw)) {
+            world.getChunkAt((x + offset[0]) >> 4, (z + offset[1]) >> 4);
+        }
+        Entity display = world.getEntity(displayId);
+        if (display == null) {
+            if (firstPass) {
+                // 可能只是实体还没进世界，下一 tick 再看
+                return false;
+            }
+            plugin.getLogger().warning("家具 " + id + " 的显示实体丢失，重新生成 (" + worldName + " " + x + "," + y + "," + z + ")");
+            // 重新生成后把原来的容器内容补回去，别把玩家存的东西弄丢
+            PlacedFurniture fresh = spawn(world, x, y, z, def, yaw, lit, ownerId);
+            if (fresh != null) {
+                readContents(fresh, raw.get("contents"));
+                saveAll();
+            }
+            return true;
+        }
+        PlacedFurniture record = new PlacedFurniture(id, worldName, x, y, z, yaw, lit, displayId, hitboxId);
+        record.owner(ownerId);
+        if (hitboxId == null) {
+            // 老数据没有 hitbox 字段：就近找一个同 ID 且没被登记的交互箱，
+            // 找不到也不要紧，loadAll 结束后的 recoverHitboxes 会重建
+            Interaction found = findLooseHitbox(world, x, y, z, id, def, yaw);
+            if (found != null) {
+                hitboxId = found.getUniqueId();
+                record.hitboxId(hitboxId);
+            }
+        }
+        records.add(record);
+        byDisplay.put(displayId, record);
+        if (hitboxId != null) {
+            byHitbox.put(hitboxId, record);
+        }
+        registerCells(record, def);
+        readContents(record, raw.get("contents"));
+        readCollisionIds(record, raw.get("collision"));
+        // 区块重载 / 世界被编辑过之后，实体可能不在原位，按存档坐标摆回去
+        resyncEntity(record, def, display);
+        ensureCollisions(record);
+        if (def.light() && lit && display instanceof Display d) {
+            d.setBrightness(new Display.Brightness(15, 15));
+        }
+        return true;
     }
 
     /** 存档读完没有：没读完之前不要清理"孤儿"实体，否则会把还没登记的碰撞体删掉 */
@@ -946,18 +993,240 @@ public final class FurnitureManager {
     }
 
     /** 在锚点附近找一件还没登记过的、属于同一家具 ID 的交互箱（兼容老存档） */
-    private Interaction findLooseHitbox(World world, int x, int y, int z, String id) {
+    private Interaction findLooseHitbox(World world, int x, int y, int z, String id,
+                                        FurnitureDef def, float yaw) {
         Location center = new Location(world, x + 0.5D, y + 0.5D, z + 0.5D);
-        for (Entity entity : world.getNearbyEntities(center, 3.0D, 3.0D, 3.0D)) {
+        java.util.Set<String> allowed = new java.util.HashSet<>();
+        for (int[] offset : cells(def, yaw)) {
+            allowed.add((x + offset[0]) + "," + y + "," + (z + offset[1]));
+        }
+        for (Entity entity : world.getNearbyEntities(center, 4.0D, 2.0D, 4.0D)) {
             if (!(entity instanceof Interaction interaction) || byHitbox.containsKey(entity.getUniqueId())) {
                 continue;
             }
             String tagged = interaction.getPersistentDataContainer().get(plugin.furnitureIdKey(), PersistentDataType.STRING);
-            if (id.equals(tagged)) {
+            if (!id.equals(tagged)) {
+                continue;
+            }
+            Location loc = interaction.getLocation();
+            // 只认落在这件家具占地格里的交互箱，否则并排的两件同款家具会互相抢
+            if (!allowed.contains(loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ())) {
+                continue;
+            }
+            if (claimedByOther(interaction.getUniqueId(), null)) {
+                continue;
+            }
+            return interaction;
+        }
+        return null;
+    }
+
+    /** 这只交互箱是不是已经被别的家具记录认领了 */
+    private boolean claimedByOther(UUID uuid, PlacedFurniture self) {
+        if (uuid == null) {
+            return false;
+        }
+        PlacedFurniture mapped = byHitbox.get(uuid);
+        if (mapped != null && mapped != self) {
+            return true;
+        }
+        for (PlacedFurniture record : records) {
+            if (record != self && uuid.equals(record.hitboxId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 交互箱容错。重启、区块重载、别的插件清过实体之后，交互箱可能迟到或彻底丢失：
+     * 少了它客户端右键会打空（家具既开不了也拆不掉），所以按三级兜底补齐。
+     * 顺序：存档 UUID → 附近同 ID 的未登记交互箱 → 重新生成一只。
+     */
+    public Interaction ensureHitbox(PlacedFurniture record, FurnitureDef def) {
+        World world = Bukkit.getWorld(record.worldName());
+        if (world == null || def == null) {
+            plugin.getLogger().info("[hitbox] " + record.id() + " @ " + record.x() + "," + record.y() + "," + record.z()
+                    + " 跳过（world=" + (world == null ? "未加载" : "已加载") + " def=" + (def == null ? "缺失" : def.id()) + "）");
+            return null;
+        }
+        // 家具区块可能已经卸载，实体就不在世界里：先把区块载进来，否则永远找不到它
+        boolean unloaded = false;
+        for (int[] offset : cells(def, record.yaw())) {
+            if (!world.isChunkLoaded((record.x() + offset[0]) >> 4, (record.z() + offset[1]) >> 4)) {
+                world.getChunkAt((record.x() + offset[0]) >> 4, (record.z() + offset[1]) >> 4);
+                unloaded = true;
+            }
+        }
+        Interaction hitbox = null;
+        if (record.hitboxId() != null) {
+            hitbox = loadedHitbox(world, record);
+        }
+        if (hitbox == null) {
+            Interaction loose = findLooseHitbox(world, record.x(), record.y(), record.z(), def.id(), def, record.yaw());
+            if (loose != null) {
+                hitbox = loose;
+                record.hitboxId(loose.getUniqueId());
+                plugin.getLogger().info("[hitbox] " + def.id() + " @ " + record.x() + "," + record.y() + "," + record.z()
+                        + " 按 UUID 找不到，已接管附近的同类交互箱" + (unloaded ? "（区块是刚载入的）" : ""));
+                saveAll();
+            }
+        }
+        if (hitbox == null) {
+            hitbox = spawnHitbox(world, record.x(), record.y(), record.z(), def, record.yaw());
+            if (hitbox != null) {
+                record.hitboxId(hitbox.getUniqueId());
+                plugin.getLogger().info("[hitbox] " + def.id() + " @ " + record.x() + "," + record.y() + "," + record.z()
+                        + " 交互箱丢失，已重新生成" + (unloaded ? "（区块是刚载入的）" : ""));
+                saveAll();
+            } else {
+                plugin.getLogger().warning("[hitbox] " + def.id() + " @ " + record.x() + "," + record.y() + "," + record.z()
+                        + " 交互箱重新生成失败");
+            }
+        }
+        if (hitbox != null) {
+            byHitbox.put(hitbox.getUniqueId(), record);
+            shapeHitbox(hitbox, def, record.yaw());
+            Location target = hitboxLocation(world, record.x(), record.y(), record.z(), def, record.yaw());
+            if (!sameSpot(hitbox.getLocation(), target)) {
+                hitbox.teleport(target);
+            }
+        }
+        return hitbox;
+    }
+
+    /**
+     * 按存档 UUID 找交互箱：只在世界已加载的实体里找。
+     * 不能直接信 World#getEntity —— 区块卸载过之后它可能还回一个早就不在世界里的残留对象，
+     * 那样家具看着"有交互箱"，实际客户端右键全打空。
+     */
+    private Interaction loadedHitbox(World world, PlacedFurniture record) {
+        FurnitureDef def = plugin.registry().get(record.id());
+        Location center = new Location(world, record.x() + 0.5D, record.y() + 0.5D, record.z() + 0.5D);
+        double reach = def == null ? 3.0D : Math.max(3.0D, def.sizeWidth() + 1.0D);
+        for (Entity entity : world.getNearbyEntities(center, reach, 3.0D, reach)) {
+            if (entity instanceof Interaction interaction && entity.getUniqueId().equals(record.hitboxId())) {
                 return interaction;
             }
         }
         return null;
+    }
+
+    /**
+     * 反查：拿一只交互箱问它属于哪件家具。
+     * 只靠 byHitbox 映射时，恢复顺序稍有偏差（实体比记录晚进世界）就会永久失效，
+     * 这里再用 PDC 标签 + 坐标兜底，查到顺手补登记。
+     */
+    public PlacedFurniture resolveHitbox(Interaction interaction) {
+        PlacedFurniture known = byHitbox.get(interaction.getUniqueId());
+        if (known != null) {
+            return known;
+        }
+        String tagged = interaction.getPersistentDataContainer().get(plugin.furnitureIdKey(),
+                PersistentDataType.STRING);
+        Location hitLoc = interaction.getLocation();
+        World world = hitLoc.getWorld();
+        if (world == null) {
+            return null;
+        }
+        PlacedFurniture byCell = at(world, hitLoc.getBlockX(), hitLoc.getBlockY(), hitLoc.getBlockZ());
+        if (byCell != null && (tagged == null || byCell.id().equals(tagged))) {
+            adoptHitbox(interaction, byCell);
+            return byCell;
+        }
+        // 多格家具的交互箱在占地中心，锚点格不一定就是它脚下那格，按距离兜底
+        PlacedFurniture best = null;
+        double bestDistance = 2.5D;
+        for (PlacedFurniture record : records) {
+            if (!record.worldName().equals(world.getName())) {
+                continue;
+            }
+            if (tagged != null && !record.id().equals(tagged)) {
+                continue;
+            }
+            FurnitureDef def = plugin.registry().get(record.id());
+            double distance = Double.MAX_VALUE;
+            for (int[] offset : def == null ? List.of(new int[]{0, 0}) : cells(def, record.yaw())) {
+                Location center = new Location(world, record.x() + offset[0] + 0.5D,
+                        record.y(), record.z() + offset[1] + 0.5D);
+                distance = Math.min(distance, center.distance(hitLoc));
+            }
+            if (distance <= bestDistance) {
+                bestDistance = distance;
+                best = record;
+            }
+        }
+        if (best != null && !claimedByOther(interaction.getUniqueId(), best)) {
+            adoptHitbox(interaction, best);
+            return best;
+        }
+        return best;
+    }
+
+    private void adoptHitbox(Interaction interaction, PlacedFurniture record) {
+        if (record.hitboxId() == null || record.hitboxId() != interaction.getUniqueId()) {
+            if (record.hitboxId() != null) {
+                byHitbox.remove(record.hitboxId());
+            }
+            record.hitboxId(interaction.getUniqueId());
+            saveAll();
+        }
+        byHitbox.put(interaction.getUniqueId(), record);
+        FurnitureDef def = plugin.registry().get(record.id());
+        if (def != null) {
+            shapeHitbox(interaction, def, record.yaw());
+        }
+    }
+
+    /** 交互箱当前状态，给 /furniture info 排障用 */
+    public String hitboxStatus(PlacedFurniture record) {
+        if (record.hitboxId() == null) {
+            return "记录里没有（下次加载会重建）";
+        }
+        World world = Bukkit.getWorld(record.worldName());
+        if (world == null) {
+            return "世界未加载";
+        }
+        if (!world.isChunkLoaded(record.x() >> 4, record.z() >> 4)) {
+            return "区块未加载（实体在存档里，玩家靠近就会恢复）";
+        }
+        Interaction interaction = loadedHitbox(world, record);
+        if (interaction == null) {
+            return "实体丢失（下次加载会重建）";
+        }
+        return byHitbox.get(interaction.getUniqueId()) == record ? "在位 / 已登记" : "在位 / 未登记";
+    }
+
+    /** 玩家身边（16 格内）的家具统一确认一遍交互箱，进服 / 区块刚加载时用 */
+    public void ensureNearby(Player player) {
+        String worldName = player.getWorld().getName();
+        Location base = player.getLocation();
+        for (PlacedFurniture record : records) {
+            if (!record.worldName().equals(worldName)) {
+                continue;
+            }
+            Location at = new Location(base.getWorld(), record.x() + 0.5D, record.y() + 0.5D, record.z() + 0.5D);
+            if (at.distanceSquared(base) > 256.0D) {
+                continue;
+            }
+            FurnitureDef def = plugin.registry().get(record.id());
+            if (def == null) {
+                continue;
+            }
+            ensureHitbox(record, def);
+            ensureCollisions(record);
+        }
+    }
+
+    /** 重启后统一把交互箱补齐（延后一 tick，等实体全部进世界） */
+    public void recoverHitboxes() {
+        for (PlacedFurniture record : records) {
+            FurnitureDef def = plugin.registry().get(record.id());
+            if (def == null) {
+                continue;
+            }
+            ensureHitbox(record, def);
+        }
     }
 
     /** 读档时把碰撞实体 UUID 读回来（旧存档没有这一项，后面 ensureCollisions 会补） */

@@ -58,6 +58,7 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
                     case "rotate" -> rotate(sender, args);
                     case "light" -> light(sender, args);
                     case "info" -> info(sender, args);
+                    case "debug" -> debug(sender);
                     case "fill" -> fill(sender, args);
                     case "pack" -> pack(sender);
                     case "reload" -> reload(sender);
@@ -352,8 +353,42 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
     }
 
     /** 查看某件家具的完整状态（含容器内容），调试与验收用 */
-    private void info(CommandSender sender, String[] args) {
+    /** 排障：世界里的交互箱实体与记录对不上时，用这个看谁丢了 */
+    private void debug(CommandSender sender) {
         World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
+        sender.sendMessage(Text.colorize("&8&m----&r &f家具调试 &8&m----"));
+        sender.sendMessage(Text.colorize("&7世界=&f" + world.getName() + " &7记录=&f" + plugin.manager().all().size()));
+        for (PlacedFurniture record : plugin.manager().all()) {
+            if (!record.worldName().equals(world.getName())) {
+                continue;
+            }
+            String hit = record.hitboxId() == null ? "无" : record.hitboxId().toString().substring(0, 8);
+            sender.sendMessage(Text.colorize("&7记录 &f" + record.id() + " &7(" + record.x() + "," + record.y() + "," + record.z()
+                    + ") hitbox=&f" + hit + " &7状态=&f" + plugin.manager().hitboxStatus(record)));
+        }
+        int count = 0;
+        java.util.List<org.bukkit.entity.Interaction> all = new java.util.ArrayList<>();
+        Location probe = sender instanceof Player player ? player.getLocation() : new Location(world, 0, 100, 0);
+        for (org.bukkit.entity.Entity entity : world.getNearbyEntities(probe, 256.0D, 256.0D, 256.0D)) {
+            if (entity instanceof org.bukkit.entity.Interaction interaction) {
+                all.add(interaction);
+            }
+        }
+        for (org.bukkit.entity.Interaction interaction : all) {
+            Location loc = interaction.getLocation();
+            PlacedFurniture owner = plugin.manager().byHitbox(interaction.getUniqueId());
+            String tag = interaction.getPersistentDataContainer().get(plugin.furnitureIdKey(),
+                    org.bukkit.persistence.PersistentDataType.STRING);
+            sender.sendMessage(Text.colorize("&7实体 &f" + interaction.getUniqueId().toString().substring(0, 8)
+                    + " &7@ &f" + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
+                    + " &7tag=&f" + (tag == null ? "无" : tag)
+                    + " &7归属=&f" + (owner == null ? "无" : owner.id())));
+            count++;
+        }
+        sender.sendMessage(Text.colorize("&7世界内交互箱实体共 &f" + count + " &7个"));
+    }
+
+    private void info(CommandSender sender, String[] args) {        World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
         Location at;
         try {
             if (args.length >= 4) {
@@ -379,6 +414,8 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
                 + record.x() + " " + record.y() + " " + record.z()));
         sender.sendMessage(Text.colorize("&7yaw=&f" + record.yaw() + " &7lit=&f" + record.lit()
                 + " &7display=&f" + record.displayId()));
+        sender.sendMessage(Text.colorize("&7交互箱=&f" + plugin.manager().hitboxStatus(record)
+                + " &7归属=&f" + (record.owner() == null ? "公共" : record.owner())));
         if (def != null) {
             sender.sendMessage(Text.colorize("&7占地=&f" + def.sizeWidth() + "x" + def.sizeDepth()
                     + " &7坐=&f" + def.seat() + " &7人数=&f" + def.seats()

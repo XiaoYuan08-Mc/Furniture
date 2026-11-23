@@ -21,6 +21,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -30,6 +32,8 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +47,8 @@ public final class FurnitureListener implements Listener {
     private final Map<UUID, UUID> seats = new HashMap<>();
     /** 坐用盔甲架 UUID → 它属于哪件家具 */
     private final Map<UUID, PlacedFurniture> seatRecords = new HashMap<>();
+    /** 左键射线拆除的节流：玩家 UUID → 上次拆除尝试时间，防止一次点击触发多次 */
+    private final Map<UUID, Long> lastSwing = new HashMap<>();
 
     public FurnitureListener(FurniturePlugin plugin) {
         this.plugin = plugin;
@@ -124,13 +130,72 @@ public final class FurnitureListener implements Listener {
     /** 命中的是不是这件家具：交互箱和挡人实体都算 */
     private PlacedFurniture recordFor(Entity entity) {
         if (entity instanceof Interaction hitbox) {
-            return plugin.manager().byHitbox(hitbox.getUniqueId());
+            // 不能只查 byHitbox：重启时实体比记录晚进世界，映射没建起来就会「点了没反应」
+            return plugin.manager().resolveHitbox(hitbox);
         }
         if (plugin.manager().isCollision(entity)) {
             Location at = entity.getLocation();
             return plugin.manager().at(entity.getWorld(), at.getBlockX(), at.getBlockY(), at.getBlockZ());
         }
         return null;
+    }
+
+    /**
+     * 左键拆除兜底。
+     * Interaction 不是 LivingEntity，客户端左键它不会产生 EntityDamageByEntityEvent，
+     * 一旦玩家打的是交互箱（而不是挡人的潜影贝），旧逻辑就完全拆不掉。
+     * 这里按视角射线找家具，命中就近拆除。
+     */
+    @EventHandler
+    public void onSwing(PlayerAnimationEvent event) {
+        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
+            return;
+        }
+        Player player = event.getPlayer();
+        if (player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Long last = lastSwing.get(player.getUniqueId());
+        if (last != null && now - last < 300L) {
+            return;
+        }
+        Location eye = player.getEyeLocation();
+        Vector direction = eye.getDirection();
+        RayTraceResult blockHit = player.getWorld().rayTraceBlocks(eye, direction, 4.5D,
+                org.bukkit.FluidCollisionMode.NEVER, true);
+        Entity nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        for (Entity entity : player.getWorld().getNearbyEntities(eye, 5.0D, 5.0D, 5.0D)) {
+            if (recordFor(entity) == null) {
+                continue;
+            }
+            RayTraceResult result = entity.getBoundingBox().rayTrace(eye.toVector(), direction, 4.5D);
+            if (result == null) {
+                continue;
+            }
+            double distance = result.getHitPosition().distanceSquared(eye.toVector());
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = entity;
+            }
+        }
+        if (nearest == null) {
+            return;
+        }
+        if (blockHit != null && blockHit.getHitPosition().distanceSquared(eye.toVector()) < nearestDistance) {
+            return;
+        }
+        PlacedFurniture record = recordFor(nearest);
+        if (record == null) {
+            return;
+        }
+        lastSwing.put(player.getUniqueId(), now);
+        if (!canManage(player, record)) {
+            player.sendMessage(Text.colorize("&c这不是你的家具，只有放置者或管理员能拆"));
+            return;
+        }
+        breakFurniture(player, record);
     }
 
     // ---------------------------------------------------------------- 右键：旋转 / 开关灯 / 坐下
@@ -305,6 +370,7 @@ public final class FurnitureListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         plugin.storage().closeQuietly(player);
+        lastSwing.remove(player.getUniqueId());
         UUID seatId = seats.remove(player.getUniqueId());
         if (seatId != null) {
             seatRecords.remove(seatId);
@@ -386,6 +452,8 @@ public final class FurnitureListener implements Listener {
                         continue;
                     }
                     plugin.manager().resyncEntity(record, def, world.getEntity(record.displayId()));
+                    // 交互箱可能比记录晚进世界 / 被别的插件清掉，这里补登记或重建，否则家具点不动
+                    plugin.manager().ensureHitbox(record, def);
                     plugin.manager().ensureCollisions(record);
                 }
                 // 孤儿挡人实体：家具已经没了，潜影贝还留着（拆除时那格没加载就会这样）
@@ -478,6 +546,14 @@ public final class FurnitureListener implements Listener {
                 plugin.recipes().discover(player);
             }
         }, 20L);
+        // 进服后把身边家具的交互箱再确认一遍：重启后区块刚载入时实体状态可能还没稳，
+        // 这里补登记 / 纠尺寸，避免"人一到家跟前，家具点不动"
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            plugin.manager().ensureNearby(player);
+        }, 40L);
     }
 
     /**
