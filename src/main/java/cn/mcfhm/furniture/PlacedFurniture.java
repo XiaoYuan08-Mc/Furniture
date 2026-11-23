@@ -18,6 +18,8 @@ public final class PlacedFurniture {
     private boolean lit;
     private final UUID displayId;
     private UUID hitboxId;
+    /** 容器类家具的物品内容（非容器家具始终为空） */
+    private final java.util.List<org.bukkit.inventory.ItemStack> contents = new java.util.ArrayList<>();
 
     public PlacedFurniture(String id, String worldName, int x, int y, int z, float yaw, UUID displayId, UUID hitboxId) {
         this(id, worldName, x, y, z, yaw, false, displayId, hitboxId);
@@ -82,6 +84,11 @@ public final class PlacedFurniture {
 
     void hitboxId(UUID value) {
         this.hitboxId = value;
+    }
+
+    /** 可变列表，容器读档时直接往里塞物品 */
+    public java.util.List<org.bukkit.inventory.ItemStack> contents() {
+        return contents;
     }
 
     /** 锚点方块中心的世界坐标；世界没加载时返回 null */

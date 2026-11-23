@@ -87,7 +87,9 @@ public final class FurnitureRegistry {
                     Math.max(1, Math.min(8, section.getInt("size-depth", 1))),
                     section.getBoolean("seat", false),
                     (float) section.getDouble("seat-y", 0.6D),
-                    section.getBoolean("light", false)
+                    section.getBoolean("light", false),
+                    Math.max(0, Math.min(54, section.getInt("storage", 0))),
+                    Math.max(1, Math.min(8, section.getInt("seats", 1)))
             ));
             FurnitureRecipe recipe = parseRecipe(id, section.getConfigurationSection("recipe"));
             if (recipe != null) {

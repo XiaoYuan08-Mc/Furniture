@@ -1,0 +1,109 @@
+{
+  "texture_size": [
+    16,
+    16
+  ],
+  "gui_light": "front",
+  "textures": {
+    "G": "minecraft:block/green_wool",
+    "W": "minecraft:block/white_wool"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        3
+      ],
+      "to": [
+        16,
+        7,
+        13
+      ],
+      "faces": {
+        "down": {
+          "texture": "#G"
+        },
+        "up": {
+          "texture": "#G"
+        },
+        "north": {
+          "texture": "#G"
+        },
+        "south": {
+          "texture": "#G"
+        },
+        "west": {
+          "texture": "#G"
+        },
+        "east": {
+          "texture": "#G"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        7,
+        4
+      ],
+      "to": [
+        15,
+        12,
+        12
+      ],
+      "faces": {
+        "down": {
+          "texture": "#G"
+        },
+        "up": {
+          "texture": "#G"
+        },
+        "north": {
+          "texture": "#G"
+        },
+        "south": {
+          "texture": "#G"
+        },
+        "west": {
+          "texture": "#G"
+        },
+        "east": {
+          "texture": "#G"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        12,
+        5
+      ],
+      "to": [
+        14,
+        14,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#W"
+        },
+        "up": {
+          "texture": "#W"
+        },
+        "north": {
+          "texture": "#W"
+        },
+        "south": {
+          "texture": "#W"
+        },
+        "west": {
+          "texture": "#W"
+        },
+        "east": {
+          "texture": "#W"
+        }
+      }
+    }
+  ]
+}

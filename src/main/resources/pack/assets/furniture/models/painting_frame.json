@@ -1,0 +1,110 @@
+{
+  "texture_size": [
+    16,
+    16
+  ],
+  "gui_light": "front",
+  "textures": {
+    "D": "minecraft:block/dark_oak_planks",
+    "B": "minecraft:block/bricks",
+    "W": "minecraft:block/white_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        4,
+        14
+      ],
+      "to": [
+        16,
+        20,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#D"
+        },
+        "up": {
+          "texture": "#D"
+        },
+        "north": {
+          "texture": "#D"
+        },
+        "south": {
+          "texture": "#D"
+        },
+        "west": {
+          "texture": "#D"
+        },
+        "east": {
+          "texture": "#D"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        6,
+        15
+      ],
+      "to": [
+        14,
+        18,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#B"
+        },
+        "up": {
+          "texture": "#B"
+        },
+        "north": {
+          "texture": "#B"
+        },
+        "south": {
+          "texture": "#B"
+        },
+        "west": {
+          "texture": "#B"
+        },
+        "east": {
+          "texture": "#B"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        8,
+        15
+      ],
+      "to": [
+        12,
+        16,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#W"
+        },
+        "up": {
+          "texture": "#W"
+        },
+        "north": {
+          "texture": "#W"
+        },
+        "south": {
+          "texture": "#W"
+        },
+        "west": {
+          "texture": "#W"
+        },
+        "east": {
+          "texture": "#W"
+        }
+      }
+    }
+  ]
+}

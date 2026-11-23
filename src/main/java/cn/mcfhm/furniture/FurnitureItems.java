@@ -20,7 +20,16 @@ public final class FurnitureItems {
         meta.setItemModel(def.model());
         List<String> lore = new ArrayList<>();
         lore.add(Text.colorize("&7家具 &8» &f" + def.id()));
-        lore.add(Text.colorize("&8左键 / 潜行右键 拆除"));
+        lore.add(Text.colorize("&8左键拆除 · 潜行右键旋转"));
+        if (def.storage() > 0) {
+            lore.add(Text.colorize("&8右键打开容器 &7(" + def.storage() + " 格)"));
+        }
+        if (def.seat()) {
+            lore.add(Text.colorize("&8右键坐下 · 潜行起身"));
+        }
+        if (def.light()) {
+            lore.add(Text.colorize("&8右键开关灯"));
+        }
         meta.setLore(lore);
         meta.getPersistentDataContainer().set(plugin.furnitureIdKey(), PersistentDataType.STRING, def.id());
         stack.setItemMeta(meta);

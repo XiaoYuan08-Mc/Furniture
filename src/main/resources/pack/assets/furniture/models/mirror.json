@@ -1,0 +1,142 @@
+{
+  "texture_size": [
+    16,
+    16
+  ],
+  "gui_light": "front",
+  "textures": {
+    "D": "minecraft:block/dark_oak_planks",
+    "G": "minecraft:block/glass",
+    "Q": "minecraft:block/smooth_quartz"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        26
+      ],
+      "to": [
+        15,
+        30,
+        28
+      ],
+      "faces": {
+        "down": {
+          "texture": "#D"
+        },
+        "up": {
+          "texture": "#D"
+        },
+        "north": {
+          "texture": "#D"
+        },
+        "south": {
+          "texture": "#D"
+        },
+        "west": {
+          "texture": "#D"
+        },
+        "east": {
+          "texture": "#D"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        2,
+        25
+      ],
+      "to": [
+        14,
+        28,
+        26
+      ],
+      "faces": {
+        "down": {
+          "texture": "#G"
+        },
+        "up": {
+          "texture": "#G"
+        },
+        "north": {
+          "texture": "#G"
+        },
+        "south": {
+          "texture": "#G"
+        },
+        "west": {
+          "texture": "#G"
+        },
+        "east": {
+          "texture": "#G"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        28,
+        25
+      ],
+      "to": [
+        14,
+        30,
+        26
+      ],
+      "faces": {
+        "down": {
+          "texture": "#Q"
+        },
+        "up": {
+          "texture": "#Q"
+        },
+        "north": {
+          "texture": "#Q"
+        },
+        "south": {
+          "texture": "#Q"
+        },
+        "west": {
+          "texture": "#Q"
+        },
+        "east": {
+          "texture": "#Q"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        0,
+        25
+      ],
+      "to": [
+        14,
+        2,
+        26
+      ],
+      "faces": {
+        "down": {
+          "texture": "#Q"
+        },
+        "up": {
+          "texture": "#Q"
+        },
+        "north": {
+          "texture": "#Q"
+        },
+        "south": {
+          "texture": "#Q"
+        },
+        "west": {
+          "texture": "#Q"
+        },
+        "east": {
+          "texture": "#Q"
+        }
+      }
+    }
+  ]
+}

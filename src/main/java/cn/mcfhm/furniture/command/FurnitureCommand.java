@@ -15,6 +15,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -37,25 +38,42 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
             help(sender, label);
             return true;
         }
-        switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "give" -> give(sender, args);
-            case "place" -> place(sender, args);
-            case "remove", "break" -> remove(sender, args);
-            case "rotate" -> rotate(sender, args);
-            case "light" -> light(sender, args);
-            case "nearest" -> nearest(sender);
-            case "list" -> list(sender);
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        boolean admin = isAdmin(sender);
+        switch (sub) {
+            case "list" -> list(sender, args, label);
             case "recipes", "recipe" -> recipes(sender);
-            case "pack" -> pack(sender);
-            case "reload" -> reload(sender);
-            default -> help(sender, label);
+            case "nearest" -> nearest(sender);
+            case "help" -> help(sender, label);
+            default -> {
+                if (!admin) {
+                    sender.sendMessage(Text.colorize("&c你没有权限使用 /" + label + " " + sub));
+                    return true;
+                }
+                switch (sub) {
+                    case "give" -> give(sender, args);
+                    case "place" -> place(sender, args);
+                    case "remove", "break" -> remove(sender, args);
+                    case "rotate" -> rotate(sender, args);
+                    case "light" -> light(sender, args);
+                    case "info" -> info(sender, args);
+                    case "fill" -> fill(sender, args);
+                    case "pack" -> pack(sender);
+                    case "reload" -> reload(sender);
+                    default -> help(sender, label);
+                }
+            }
         }
         return true;
     }
 
+    private static boolean isAdmin(CommandSender sender) {
+        return !(sender instanceof Player player) || player.hasPermission("furniture.admin");
+    }
+
     private void help(CommandSender sender, String label) {
         sender.sendMessage(Text.colorize("&8&m----&r &f家具系统 &8&m----"));
-        sender.sendMessage(Text.colorize("&f/" + label + " list &7查看所有家具"));
+        sender.sendMessage(Text.colorize("&f/" + label + " list [关键字] &7查看所有家具（可按 ID 过滤）"));
         sender.sendMessage(Text.colorize("&f/" + label + " recipes &7查看工作台合成配方"));
         sender.sendMessage(Text.colorize("&f/" + label + " give <ID> [玩家] [数量] &7拿家具（默认给自己 1 个）"));
         sender.sendMessage(Text.colorize("&f/" + label + " place <ID> &7在准星处直接放置"));
@@ -65,9 +83,11 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Text.colorize("&f/" + label + " rotate [x y z] [角度] &7原地旋转 90°"));
         sender.sendMessage(Text.colorize("&f/" + label + " light [x y z] &7开关灯具"));
         sender.sendMessage(Text.colorize("&f/" + label + " nearest &7看身边最近的家具状态"));
+        sender.sendMessage(Text.colorize("&f/" + label + " info [x y z] &7看某件家具的完整状态（含容器内容）"));
+        sender.sendMessage(Text.colorize("&f/" + label + " fill <x> <y> <z> [material] [数量] &7直接往储物家具里塞物品"));
         sender.sendMessage(Text.colorize("&f/" + label + " pack &7重新下发资源包"));
         sender.sendMessage(Text.colorize("&f/" + label + " reload &7重载配置并重建资源包"));
-        sender.sendMessage(Text.colorize("&7手持家具物品右键方块放置；左键拆除；潜行右键旋转；右键椅子坐下 / 灯具开关"));
+        sender.sendMessage(Text.colorize("&7手持家具右键方块放置；左键拆除；潜行右键旋转；右键椅子坐下 / 柜子开箱 / 灯具开关"));
     }
 
     private void give(CommandSender sender, String[] args) {
@@ -315,16 +335,139 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Text.colorize("&a已" + (lit ? "开灯" : "关灯") + " &f" + def.name()));
     }
 
-    private void list(CommandSender sender) {
+    /** 查看某件家具的完整状态（含容器内容），调试与验收用 */
+    private void info(CommandSender sender, String[] args) {
+        World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
+        Location at;
+        try {
+            if (args.length >= 4) {
+                at = new Location(world, Integer.parseInt(args[1]) + 0.5D, Integer.parseInt(args[2]) + 0.5D, Integer.parseInt(args[3]) + 0.5D);
+            } else if (sender instanceof Player player) {
+                at = player.getLocation();
+            } else {
+                sender.sendMessage(Text.colorize("&c用法: /furniture info <x> <y> <z>"));
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(Text.colorize("&c坐标格式不对"));
+            return;
+        }
+        PlacedFurniture record = plugin.manager().nearest(at, 1.6D);
+        if (record == null) {
+            sender.sendMessage(Text.colorize("&c那里没有家具"));
+            return;
+        }
+        FurnitureDef def = plugin.registry().get(record.id());
+        sender.sendMessage(Text.colorize("&8&m----&r &f" + (def == null ? record.id() : def.name()) + " &8&m----"));
+        sender.sendMessage(Text.colorize("&7id=&f" + record.id() + " &7位置=&f" + record.worldName() + " "
+                + record.x() + " " + record.y() + " " + record.z()));
+        sender.sendMessage(Text.colorize("&7yaw=&f" + record.yaw() + " &7lit=&f" + record.lit()
+                + " &7display=&f" + record.displayId()));
+        if (def != null) {
+            sender.sendMessage(Text.colorize("&7占地=&f" + def.sizeWidth() + "x" + def.sizeDepth()
+                    + " &7坐=&f" + def.seat() + " &7人数=&f" + def.seats()
+                    + " &7灯=&f" + def.light() + " &7容器=&f" + def.storage()));
+        }
+        sender.sendMessage(Text.colorize("&7容器内容=&f" + record.contents().size() + " &7件"));
+        World recordWorld = Bukkit.getWorld(record.worldName());
+        if (recordWorld != null) {
+            Block anchor = recordWorld.getBlockAt(record.x(), record.y(), record.z());
+            String level = "";
+            if (anchor.getBlockData() instanceof org.bukkit.block.data.Levelled levelled) {
+                level = " &7亮度=&f" + levelled.getLevel();
+            }
+            sender.sendMessage(Text.colorize("&7锚点方块=&f" + anchor.getType().name() + level));
+        }
+        for (int i = 0; i < record.contents().size() && i < 10; i++) {
+            ItemStack stack = record.contents().get(i);
+            sender.sendMessage(Text.colorize("&8- &f" + stack.getType().name() + " &7x" + stack.getAmount()));
+        }
+    }
+
+    /** 往储物家具里塞物品，避免为了验收专门开 GUI */
+    private void fill(CommandSender sender, String[] args) {
+        World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
+        if (args.length < 4) {
+            sender.sendMessage(Text.colorize("&c用法: /furniture fill <x> <y> <z> [material] [数量]"));
+            return;
+        }
+        Location at;
+        try {
+            at = new Location(world, Integer.parseInt(args[1]) + 0.5D,
+                    Integer.parseInt(args[2]) + 0.5D, Integer.parseInt(args[3]) + 0.5D);
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(Text.colorize("&c坐标格式不对"));
+            return;
+        }
+        PlacedFurniture record = plugin.manager().nearest(at, 1.6D);
+        if (record == null) {
+            sender.sendMessage(Text.colorize("&c那里没有家具"));
+            return;
+        }
+        FurnitureDef def = plugin.registry().get(record.id());
+        if (def == null || def.storage() <= 0) {
+            sender.sendMessage(Text.colorize("&c这件家具不是储物容器"));
+            return;
+        }
+        Material material = Material.STONE;
+        if (args.length >= 5) {
+            material = Material.matchMaterial(args[4].toUpperCase(Locale.ROOT));
+            if (material == null || material.isAir()) {
+                sender.sendMessage(Text.colorize("&c不认识的物品: " + args[4]));
+                return;
+            }
+        }
+        int amount = 1;
+        if (args.length >= 6) {
+            try {
+                amount = Math.max(1, Math.min(64, Integer.parseInt(args[5])));
+            } catch (NumberFormatException ex) {
+                sender.sendMessage(Text.colorize("&c数量格式不对"));
+                return;
+            }
+        }
+        if (record.contents().size() >= def.storage()) {
+            sender.sendMessage(Text.colorize("&c容器已满（" + def.storage() + " 格）"));
+            return;
+        }
+        record.contents().add(new ItemStack(material, amount));
+        plugin.manager().saveAll();
+        sender.sendMessage(Text.colorize("&a已放入 &f" + material.name() + " x" + amount
+                + " &7→ " + def.name() + "，当前 &f" + record.contents().size() + "&7/" + def.storage() + " 格"));
+    }
+
+    private void list(CommandSender sender, String[] args, String label) {
         if (plugin.registry().ids().isEmpty()) {
             sender.sendMessage(Text.colorize("&c还没有任何家具定义"));
             return;
         }
+        String filter = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : null;
         sender.sendMessage(Text.colorize("&8&m----&r &f家具列表 &8&m----"));
+        StringBuilder line = new StringBuilder();
+        int inLine = 0;
+        int shown = 0;
         for (FurnitureDef def : plugin.registry().all()) {
-            sender.sendMessage(Text.colorize("&7- &f" + def.id() + " &7→ " + def.name() + " &8(" + def.model().toString() + ")"));
+            if (filter != null && !def.id().toLowerCase(Locale.ROOT).contains(filter)
+                    && !def.name().toLowerCase(Locale.ROOT).contains(filter)) {
+                continue;
+            }
+            if (inLine == 0) {
+                line.append("&7- ");
+            }
+            line.append("&f").append(def.id()).append("&8(").append(def.name()).append("&8) ");
+            inLine++;
+            shown++;
+            if (inLine >= 3) {
+                sender.sendMessage(Text.colorize(line.toString()));
+                line.setLength(0);
+                inLine = 0;
+            }
         }
-        sender.sendMessage(Text.colorize("&7已放置: &f" + plugin.manager().count() + " &7个"));
+        if (inLine > 0) {
+            sender.sendMessage(Text.colorize(line.toString()));
+        }
+        sender.sendMessage(Text.colorize("&7共 &f" + shown + " &7件，已放置 &f"
+                + plugin.manager().count() + " &7个；详细用法 &f/" + label + " help"));
     }
 
     private void recipes(CommandSender sender) {
@@ -385,7 +528,7 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("give", "place", "remove", "rotate", "light", "nearest", "list", "recipes", "pack", "reload")) {
+            for (String sub : List.of("give", "place", "remove", "rotate", "light", "info", "fill", "nearest", "list", "recipes", "pack", "reload")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -421,3 +564,4 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         return value;
     }
 }
+

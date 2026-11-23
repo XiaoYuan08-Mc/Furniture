@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "cn.mcfhm"
-version = "0.2.0"
+version = "0.3.0"
 
 repositories {
     maven("https://repo.purpurmc.org/snapshots")
@@ -43,3 +43,4 @@ tasks.processResources {
 tasks.jar {
     archiveFileName = "Furniture-${project.version}.jar"
 }
+

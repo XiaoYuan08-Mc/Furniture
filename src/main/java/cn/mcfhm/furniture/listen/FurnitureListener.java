@@ -160,6 +160,14 @@ public final class FurnitureListener implements Listener {
             sit(player, record, def);
             return;
         }
+        if (player.getVehicle() != null) {
+            player.sendMessage(Text.colorize("&7你已经坐着了，潜行即可起身"));
+            return;
+        }
+        if (def.storage() > 0) {
+            plugin.storage().open(player, record, def);
+            return;
+        }
         if (def.light()) {
             boolean lit = plugin.manager().toggleLight(record);
             player.sendMessage(Text.colorize(lit ? "&a已开灯 &7(" + def.name() + "&7)" : "&7已关灯 &7(" + def.name() + "&7)"));
@@ -174,10 +182,28 @@ public final class FurnitureListener implements Listener {
         if (world == null) {
             return;
         }
+        // 数一下这件家具上已经坐了几个人，超员就拒绝
+        int taken = 0;
+        for (PlacedFurniture occupied : seatRecords.values()) {
+            if (occupied == record) {
+                taken++;
+            }
+        }
+        if (taken >= def.seats()) {
+            player.sendMessage(Text.colorize("&c这件家具已经坐满了（&f" + def.seats() + " &c人）"));
+            return;
+        }
+        // 多人座沿家具宽度方向等分落座：单人坐中间，双人分左右，三人三等分
+        double localX = (def.sizeWidth() - 1) / 2.0D;
+        if (def.seats() > 1) {
+            localX += ((double) taken / (def.seats() - 1) - 0.5D) * (def.sizeWidth() - 1);
+        }
+        double localZ = (def.sizeDepth() - 1) / 2.0D;
+        double[] offset = cn.mcfhm.furniture.FurnitureManager.worldOffset(record.yaw(), localX, localZ);
         Location seatAt = new Location(world,
-                record.x() + 0.5D,
+                record.x() + 0.5D + offset[0],
                 record.y() + def.seatY() + plugin.getConfig().getDouble("interact.seat-offset", 0.0D),
-                record.z() + 0.5D, record.yaw(), 0.0F);
+                record.z() + 0.5D + offset[1], record.yaw(), 0.0F);
         Entity spawned = world.spawnEntity(seatAt, EntityType.ARMOR_STAND);
         if (!(spawned instanceof ArmorStand stand)) {
             if (spawned != null) {
@@ -233,12 +259,69 @@ public final class FurnitureListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        UUID seatId = seats.remove(event.getPlayer().getUniqueId());
+        Player player = event.getPlayer();
+        plugin.storage().closeQuietly(player);
+        UUID seatId = seats.remove(player.getUniqueId());
         if (seatId != null) {
             seatRecords.remove(seatId);
-            Entity seat = event.getPlayer().getWorld().getEntity(seatId);
+            Entity seat = player.getWorld().getEntity(seatId);
             if (seat != null) {
                 seat.remove();
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- 容器
+    @EventHandler
+    public void onInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent event) {
+        if (event.getPlayer() instanceof Player player) {
+            plugin.storage().close(player, event.getInventory());
+        }
+    }
+
+    /** 家具被拆（命令 / 左键都走这里）：先让人起身，再关掉正打开着的界面 */
+    @EventHandler
+    public void onFurnitureRemove(cn.mcfhm.furniture.FurnitureRemoveEvent event) {
+        ejectSeated(event.record());
+        for (Player online : plugin.getServer().getOnlinePlayers()) {
+            if (plugin.storage().viewingRecord(online) == event.record()) {
+                online.closeInventory();
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- 传送 / 死亡时收座位
+    @EventHandler
+    public void onTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
+        if (seats.containsKey(event.getPlayer().getUniqueId())
+                && (event.getFrom().getWorld() != event.getTo().getWorld()
+                || event.getFrom().distanceSquared(event.getTo()) > 4.0D)) {
+            stand(event.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onDeath(org.bukkit.event.entity.PlayerDeathEvent event) {
+        stand(event.getEntity());
+    }
+
+    /** 区块重新加载后补回灯具亮度（显示实体的亮度不保证跨重载保留） */
+    @EventHandler
+    public void onChunkLoad(org.bukkit.event.world.ChunkLoadEvent event) {
+        for (PlacedFurniture record : plugin.manager().all()) {
+            if (!record.worldName().equals(event.getWorld().getName())) {
+                continue;
+            }
+            if ((record.x() >> 4) != event.getChunk().getX() || (record.z() >> 4) != event.getChunk().getZ()) {
+                continue;
+            }
+            FurnitureDef def = plugin.registry().get(record.id());
+            if (def == null || !def.light()) {
+                continue;
+            }
+            Entity display = event.getWorld().getEntity(record.displayId());
+            if (display instanceof org.bukkit.entity.Display d) {
+                d.setBrightness(record.lit() ? new org.bukkit.entity.Display.Brightness(15, 15) : null);
             }
         }
     }

@@ -1,4 +1,4 @@
-# ===== Furniture 0.2.0 配置 =====
+# ===== Furniture 0.3.0 配置 =====
 
 resource-pack:
   # 是否启用资源包（关闭后家具会显示成原材料的样子）
@@ -33,6 +33,12 @@ interact:
   # 座位用 marker 隐形盔甲架（不挡碰撞）；如果坐不上去就改成 false
   seat-marker: true
 
+light:
+  # 开灯时在锚点格放一个不可见的 light 方块（亮度 15），真正照亮周围地面和墙面
+  # 关掉则只有模型自发光，夜里不会照亮环境
+  place-block: true
+
 # 是否在控制台输出资源包接受状态等调试信息
 debug: false
+
 

@@ -1,5 +1,5 @@
 name: Furniture
-version: 0.2.0
+version: 0.3.0
 main: cn.mcfhm.furniture.FurniturePlugin
 api-version: '26.3'
 authors: [FHM]
@@ -9,3 +9,8 @@ commands:
     description: 家具主命令
     usage: "/furniture help"
     aliases: [jiaju]
+permissions:
+  furniture.admin:
+    description: 使用 give/place/remove/rotate/light/pack/reload 管理命令
+    default: op
+

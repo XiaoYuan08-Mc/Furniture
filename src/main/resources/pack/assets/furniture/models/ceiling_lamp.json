@@ -1,0 +1,174 @@
+{
+  "texture_size": [
+    16,
+    16
+  ],
+  "gui_light": "front",
+  "textures": {
+    "I": "minecraft:block/iron_block",
+    "W": "minecraft:block/white_wool",
+    "G": "minecraft:block/glowstone"
+  },
+  "elements": [
+    {
+      "from": [
+        7,
+        24,
+        7
+      ],
+      "to": [
+        9,
+        32,
+        9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#I"
+        },
+        "up": {
+          "texture": "#I"
+        },
+        "north": {
+          "texture": "#I"
+        },
+        "south": {
+          "texture": "#I"
+        },
+        "west": {
+          "texture": "#I"
+        },
+        "east": {
+          "texture": "#I"
+        }
+      }
+    },
+    {
+      "from": [
+        3,
+        14,
+        3
+      ],
+      "to": [
+        13,
+        24,
+        13
+      ],
+      "faces": {
+        "down": {
+          "texture": "#W"
+        },
+        "up": {
+          "texture": "#W"
+        },
+        "north": {
+          "texture": "#W"
+        },
+        "south": {
+          "texture": "#W"
+        },
+        "west": {
+          "texture": "#W"
+        },
+        "east": {
+          "texture": "#W"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        15,
+        4
+      ],
+      "to": [
+        12,
+        23,
+        12
+      ],
+      "faces": {
+        "down": {
+          "texture": "#G"
+        },
+        "up": {
+          "texture": "#G"
+        },
+        "north": {
+          "texture": "#G"
+        },
+        "south": {
+          "texture": "#G"
+        },
+        "west": {
+          "texture": "#G"
+        },
+        "east": {
+          "texture": "#G"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        12,
+        4
+      ],
+      "to": [
+        12,
+        14,
+        12
+      ],
+      "faces": {
+        "down": {
+          "texture": "#I"
+        },
+        "up": {
+          "texture": "#I"
+        },
+        "north": {
+          "texture": "#I"
+        },
+        "south": {
+          "texture": "#I"
+        },
+        "west": {
+          "texture": "#I"
+        },
+        "east": {
+          "texture": "#I"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        10,
+        4
+      ],
+      "to": [
+        12,
+        12,
+        12
+      ],
+      "faces": {
+        "down": {
+          "texture": "#G"
+        },
+        "up": {
+          "texture": "#G"
+        },
+        "north": {
+          "texture": "#G"
+        },
+        "south": {
+          "texture": "#G"
+        },
+        "west": {
+          "texture": "#G"
+        },
+        "east": {
+          "texture": "#G"
+        }
+      }
+    }
+  ]
+}

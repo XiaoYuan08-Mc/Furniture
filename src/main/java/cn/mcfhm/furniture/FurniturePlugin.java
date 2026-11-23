@@ -23,6 +23,7 @@ public final class FurniturePlugin extends JavaPlugin {
     private FurnitureRegistry registry;
     private FurnitureRecipes recipes;
     private FurnitureManager manager;
+    private FurnitureStorage storage;
     private PackServer packServer;
     private PackResult pack;
     private int boundPort;
@@ -37,6 +38,7 @@ public final class FurniturePlugin extends JavaPlugin {
         recipes = new FurnitureRecipes(this);
         recipes.sync();
 
+        storage = new FurnitureStorage(this);
         manager = new FurnitureManager(this);
         manager.loadAll();
 
@@ -88,6 +90,10 @@ public final class FurniturePlugin extends JavaPlugin {
 
     public FurnitureRecipes recipes() {
         return recipes;
+    }
+
+    public FurnitureStorage storage() {
+        return storage;
     }
 
     public PackResult pack() {

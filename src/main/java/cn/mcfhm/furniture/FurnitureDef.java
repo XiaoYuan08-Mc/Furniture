@@ -22,6 +22,8 @@ import org.bukkit.entity.ItemDisplay;
  * @param seat         能否坐人
  * @param seatY        坐姿高度（相对锚点方块底部，格）
  * @param light        是否可开关灯（右键切换模型亮度）
+ * @param storage      容器槽位数量（0 = 不能储物；9/18/27/36/54）
+ * @param seats        同时能坐几个人（1 = 单人，沙发这类可以 2~3）
  */
 public record FurnitureDef(
         String id,
@@ -38,7 +40,9 @@ public record FurnitureDef(
         int sizeDepth,
         boolean seat,
         float seatY,
-        boolean light
+        boolean light,
+        int storage,
+        int seats
 ) {
 
     public String name() {
