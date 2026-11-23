@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "D": "minecraft:block/dark_oak_planks",
-    "B": "minecraft:block/bricks",
-    "W": "minecraft:block/white_concrete"
+    "D": "furniture:block/dark_oak_planks",
+    "B": "furniture:block/bricks",
+    "W": "furniture:block/white_concrete",
+    "particle": "furniture:block/dark_oak_planks"
   },
   "elements": [
     {

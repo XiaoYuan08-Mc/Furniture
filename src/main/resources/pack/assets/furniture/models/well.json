@@ -5,10 +5,11 @@
   ],
   "gui_light": "front",
   "textures": {
-    "C": "minecraft:block/cobblestone",
-    "W": "minecraft:block/water_still",
-    "P": "minecraft:block/oak_planks",
-    "D": "minecraft:block/dark_oak_planks"
+    "C": "furniture:block/cobblestone",
+    "W": "furniture:block/water_still",
+    "P": "furniture:block/oak_planks",
+    "D": "furniture:block/dark_oak_planks",
+    "particle": "furniture:block/cobblestone"
   },
   "elements": [
     {

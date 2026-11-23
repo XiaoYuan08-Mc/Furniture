@@ -5,10 +5,11 @@
   ],
   "gui_light": "front",
   "textures": {
-    "B": "minecraft:block/bricks",
-    "K": "minecraft:block/black_concrete",
-    "G": "minecraft:block/glowstone",
-    "D": "minecraft:block/dark_oak_planks"
+    "B": "furniture:block/bricks",
+    "K": "furniture:block/black_concrete",
+    "G": "furniture:block/glowstone",
+    "D": "furniture:block/dark_oak_planks",
+    "particle": "furniture:block/bricks"
   },
   "elements": [
     {

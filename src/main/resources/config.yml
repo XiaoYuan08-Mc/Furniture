@@ -18,7 +18,7 @@ resource-pack:
     minor: 1
     max-major: 999
     max-minor: 0
-  description: "FHM 家具资源包"
+  description: "FHM 家具 + 反透视 + 末影眼 + 附魔 + 槽位高亮"
 
 place:
   # 放置后是否消耗手里的家具物品（上线务必保持 true，否则一件家具可以无限摆）

@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "I": "minecraft:block/iron_block",
-    "K": "minecraft:block/black_concrete",
-    "R": "minecraft:block/red_wool"
+    "I": "furniture:block/iron_block",
+    "K": "furniture:block/black_concrete",
+    "R": "furniture:block/red_wool",
+    "particle": "furniture:block/iron_block"
   },
   "elements": [
     {

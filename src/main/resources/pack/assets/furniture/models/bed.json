@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "W": "minecraft:block/white_wool",
-    "P": "minecraft:block/oak_planks",
-    "R": "minecraft:block/red_wool"
+    "W": "furniture:block/white_wool",
+    "P": "furniture:block/oak_planks",
+    "R": "furniture:block/red_wool",
+    "particle": "furniture:block/white_wool"
   },
   "elements": [
     {

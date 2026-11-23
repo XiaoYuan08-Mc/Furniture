@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "Q": "minecraft:block/quartz_block_bottom",
-    "D": "minecraft:block/dark_oak_planks",
-    "K": "minecraft:block/black_concrete"
+    "Q": "furniture:block/quartz_block_bottom",
+    "D": "furniture:block/dark_oak_planks",
+    "K": "furniture:block/black_concrete",
+    "particle": "furniture:block/quartz_block_bottom"
   },
   "elements": [
     {

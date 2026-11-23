@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "C": "minecraft:block/cobblestone",
-    "G": "minecraft:block/glowstone",
-    "S": "minecraft:block/stone_bricks"
+    "C": "furniture:block/cobblestone",
+    "G": "furniture:block/glowstone",
+    "S": "furniture:block/stone_bricks",
+    "particle": "furniture:block/cobblestone"
   },
   "elements": [
     {

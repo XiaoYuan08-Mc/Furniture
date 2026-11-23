@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "D": "minecraft:block/dark_oak_planks",
-    "G": "minecraft:block/green_wool",
-    "R": "minecraft:block/red_wool"
+    "D": "furniture:block/dark_oak_planks",
+    "G": "furniture:block/green_wool",
+    "R": "furniture:block/red_wool",
+    "particle": "furniture:block/dark_oak_planks"
   },
   "elements": [
     {

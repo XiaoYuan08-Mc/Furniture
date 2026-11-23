@@ -5,10 +5,11 @@
   ],
   "gui_light": "front",
   "textures": {
-    "T": "minecraft:block/terracotta",
-    "D": "minecraft:block/dirt",
-    "C": "minecraft:block/cherry_leaves",
-    "P": "minecraft:block/cherry_planks"
+    "T": "furniture:block/terracotta",
+    "D": "furniture:block/dirt",
+    "C": "furniture:block/cherry_leaves",
+    "P": "furniture:block/cherry_planks",
+    "particle": "furniture:block/terracotta"
   },
   "elements": [
     {

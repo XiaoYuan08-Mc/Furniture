@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "G": "minecraft:block/green_wool",
-    "W": "minecraft:block/white_wool"
+    "G": "furniture:block/green_wool",
+    "W": "furniture:block/white_wool",
+    "particle": "furniture:block/green_wool"
   },
   "elements": [
     {

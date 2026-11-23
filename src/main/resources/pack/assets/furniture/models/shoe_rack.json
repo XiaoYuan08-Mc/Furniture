@@ -5,7 +5,8 @@
   ],
   "gui_light": "front",
   "textures": {
-    "P": "minecraft:block/birch_planks"
+    "P": "furniture:block/birch_planks",
+    "particle": "furniture:block/birch_planks"
   },
   "elements": [
     {

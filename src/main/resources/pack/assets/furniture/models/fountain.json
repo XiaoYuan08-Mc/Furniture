@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "S": "minecraft:block/stone_bricks",
-    "W": "minecraft:block/water_still"
+    "S": "furniture:block/stone_bricks",
+    "W": "furniture:block/water_still",
+    "particle": "furniture:block/stone_bricks"
   },
   "elements": [
     {

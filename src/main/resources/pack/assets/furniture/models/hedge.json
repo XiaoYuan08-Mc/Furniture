@@ -5,7 +5,8 @@
   ],
   "gui_light": "front",
   "textures": {
-    "L": "minecraft:block/oak_leaves"
+    "L": "furniture:block/oak_leaves",
+    "particle": "furniture:block/oak_leaves"
   },
   "elements": [
     {

@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "Q": "minecraft:block/quartz_block_bottom",
-    "I": "minecraft:block/iron_block",
-    "W": "minecraft:block/water_still"
+    "Q": "furniture:block/quartz_block_bottom",
+    "I": "furniture:block/iron_block",
+    "W": "furniture:block/water_still",
+    "particle": "furniture:block/quartz_block_bottom"
   },
   "elements": [
     {

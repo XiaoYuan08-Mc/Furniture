@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "I": "minecraft:block/iron_block",
-    "S": "minecraft:block/stone_bricks",
-    "G": "minecraft:block/glowstone"
+    "I": "furniture:block/iron_block",
+    "S": "furniture:block/stone_bricks",
+    "G": "furniture:block/glowstone",
+    "particle": "furniture:block/iron_block"
   },
   "elements": [
     {

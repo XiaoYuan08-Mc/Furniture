@@ -5,10 +5,11 @@
   ],
   "gui_light": "front",
   "textures": {
-    "T": "minecraft:block/terracotta",
-    "D": "minecraft:block/dirt",
-    "L": "minecraft:block/oak_leaves",
-    "R": "minecraft:block/red_wool"
+    "T": "furniture:block/terracotta",
+    "D": "furniture:block/dirt",
+    "L": "furniture:block/oak_leaves",
+    "R": "furniture:block/red_wool",
+    "particle": "furniture:block/terracotta"
   },
   "elements": [
     {

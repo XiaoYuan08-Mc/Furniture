@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "W": "minecraft:block/white_concrete",
-    "I": "minecraft:block/iron_block"
+    "W": "furniture:block/white_concrete",
+    "I": "furniture:block/iron_block",
+    "particle": "furniture:block/white_concrete"
   },
   "elements": [
     {

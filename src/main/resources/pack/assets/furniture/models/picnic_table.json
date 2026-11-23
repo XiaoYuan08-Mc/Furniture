@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "P": "minecraft:block/spruce_planks",
-    "L": "minecraft:block/stripped_spruce_log"
+    "P": "furniture:block/spruce_planks",
+    "L": "furniture:block/stripped_spruce_log",
+    "particle": "furniture:block/spruce_planks"
   },
   "elements": [
     {

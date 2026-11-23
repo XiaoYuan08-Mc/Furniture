@@ -5,9 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "plank": "minecraft:block/oak_planks",
-    "log": "minecraft:block/oak_log",
-    "particle": "minecraft:block/oak_planks"
+    "plank": "furniture:block/oak_planks",
+    "log": "furniture:block/oak_log",
+    "particle": "furniture:block/oak_planks"
   },
   "elements": [
     {

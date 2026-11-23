@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "B": "minecraft:block/bookshelf",
-    "P": "minecraft:block/oak_planks"
+    "B": "furniture:block/bookshelf",
+    "P": "furniture:block/oak_planks",
+    "particle": "furniture:block/bookshelf"
   },
   "elements": [
     {

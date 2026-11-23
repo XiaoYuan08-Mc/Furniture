@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "D": "minecraft:block/dark_oak_planks",
-    "H": "minecraft:block/hay_block_side",
-    "K": "minecraft:block/carved_pumpkin"
+    "D": "furniture:block/dark_oak_planks",
+    "H": "furniture:block/hay_block_side",
+    "K": "furniture:block/carved_pumpkin",
+    "particle": "furniture:block/dark_oak_planks"
   },
   "elements": [
     {

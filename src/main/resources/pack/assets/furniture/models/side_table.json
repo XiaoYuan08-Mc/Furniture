@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "P": "minecraft:block/birch_planks",
-    "L": "minecraft:block/stripped_oak_log"
+    "P": "furniture:block/birch_planks",
+    "L": "furniture:block/stripped_oak_log",
+    "particle": "furniture:block/birch_planks"
   },
   "elements": [
     {

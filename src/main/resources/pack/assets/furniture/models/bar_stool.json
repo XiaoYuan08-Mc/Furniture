@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "I": "minecraft:block/iron_block",
-    "D": "minecraft:block/dark_oak_planks",
-    "S": "minecraft:block/stripped_dark_oak_log"
+    "I": "furniture:block/iron_block",
+    "D": "furniture:block/dark_oak_planks",
+    "S": "furniture:block/stripped_dark_oak_log",
+    "particle": "furniture:block/iron_block"
   },
   "elements": [
     {

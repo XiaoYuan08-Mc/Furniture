@@ -5,8 +5,9 @@
   ],
   "gui_light": "front",
   "textures": {
-    "D": "minecraft:block/dirt",
-    "L": "minecraft:block/oak_leaves"
+    "D": "furniture:block/dirt",
+    "L": "furniture:block/oak_leaves",
+    "particle": "furniture:block/dirt"
   },
   "elements": [
     {

@@ -5,9 +5,10 @@
   ],
   "gui_light": "front",
   "textures": {
-    "K": "minecraft:block/black_concrete",
-    "G": "minecraft:block/glowstone",
-    "B": "minecraft:block/blue_wool"
+    "K": "furniture:block/black_concrete",
+    "G": "furniture:block/glowstone",
+    "B": "furniture:block/blue_wool",
+    "particle": "furniture:block/black_concrete"
   },
   "elements": [
     {

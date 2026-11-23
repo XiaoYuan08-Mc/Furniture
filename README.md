@@ -9,6 +9,14 @@
 - 资源包：插件启动时把内置 `pack/` 打成 zip，并起一个内置 HTTP 服务（默认 8123，被占用自动顺延），玩家登录后自动下发
 - 合成：`furniture.yml` 的 `recipe` 节点注册成真正的工作台配方
 
+## 0.4.1 修了什么
+
+1. **紫黑的真正原因**：26.3 要求每个模型都声明可解析的 `particle` 纹理槽。76 个模型里有 72 个没写，客户端日志刷一屏 `Missing texture references in model furniture:xxx: particle`，并把整件模型降级成 missing model 渲染（就是截图里的粉黑棋盘）。全部补上 `particle`，取值就用模型自己的第一张贴图，粒子颜色和家具本体一致。
+2. **贴图不再依赖原版文件名**：76 个模型引用的 30 张原版方块贴图全部复制进包内的 `assets/furniture/textures/block/`，模型引用改成 `furniture:block/...`（动画贴图的 `.mcmeta` 也一起复制）。以后客户端装别的资源包、或者原版把某个贴图改名，家具都不会再变色或紫黑。
+3. **集成里的四个资源包合并进同一个包**：`Anti_Xray_Full_26.3`、`EnderEyes_26.3_v3.1`、`EvenBetterEnchants_v3`、`Clearer Slot Highlight` 的 assets 全部并进插件内置资源包，客户端只装一个包就能同时拿到反透视、末影眼、附魔外观、槽位高亮。家具用独立 `furniture` 命名空间，冲突时家具优先，实际只有 2 个文件重叠（末影传送门方块，归 EnderEyes）。
+4. **新增校验脚本**：`tools/check-pack.py` 模拟客户端叠加，把包内 3092 个模型的贴图引用和 `particle` 槽全查一遍；`tools/check-textures.py` 单独核对原版贴图清单。
+5. **包体积**：59,853 字节 / 153 条目 → 1,805,173 字节 / 4703 条目（sha1 7f56f5e5），主要是并进来的四个包；资源包仍在启动时生成，固定时间戳，内容不变时 sha1 不变。
+
 ## 0.4.0 修了什么
 
 1. **紫黑方块的原因找到了**：`bar_counter / kitchen_counter / mirror / round_table / sink / vanity` 这 6 个模型引用的是 `minecraft:block/smooth_quartz`，26.3 里这个贴图文件名没了（现在是 `quartz_block_*`），客户端只能画成紫黑缺失贴图。全部换成 `quartz_block_bottom`，顺手写了个脚本把 76 个模型的贴图名跟客户端 jar 里的清单对了一遍。
@@ -46,7 +54,7 @@
 
 ## 快速测试
 
-1. 把 `build/libs/Furniture-0.4.0.jar` 丢进 `plugins/`（**删掉旧的 0.3.x jar**，同版本名会报 Ambiguous plugin name）。
+1. 把 `build/libs/Furniture-0.4.1.jar` 丢进 `plugins/`（**删掉旧的 0.3.x / 0.4.0 jar**，同版本名会报 Ambiguous plugin name）。
 2. 控制台确认：
    - `已加载家具定义 76 个, 合成配方 76 条`
    - `资源包已生成: ...\plugins\Furniture\pack\FurniturePack.zip (56199 字节, sha1=…)`
@@ -167,7 +175,7 @@ pwsh -File tools/gen-catalog.ps1
 
 ## 这一版已跑通的（无头服 + 控制台命令）
 
-- 定义 76 / 配方 76 条 / 资源包 153 个条目（76 models + 76 items + mcmeta），58953 字节，重复构建 sha1 一致
+- 定义 76 / 配方 76 条 / 资源包 4703 个条目（76 models + 76 items + 30 张自带贴图 + 四个集成包资源 + mcmeta），1645311 字节，重复构建 sha1 一致
 - 储物：`fill` 塞 2 件 → `info` 显示 2 件（[1] DIAMOND、[2] STONE）→ 停服重启 → 仍 2 件 → 旋转后仍在 → `remove` 清空并按件掉落
 - 槽位保序：存档里 `["", base64]` → 重启后 `info` 报"内容=1 件 / [2] DIAMOND" → `fill` 填到第 1 格 → `[1] STONE + [2] DIAMOND`
 - 世界未加载：写入 `world: world_missing` 记录 → 启动 WARN 提示并 park → 后续 `saveAll` 后该记录仍在
