@@ -46,6 +46,7 @@ public final class FurnitureListener implements Listener {
 
     public FurnitureListener(FurniturePlugin plugin) {
         this.plugin = plugin;
+        plugin.seatEjector(this::ejectSeated);
     }
 
     // ---------------------------------------------------------------- 放置
@@ -182,7 +183,14 @@ public final class FurnitureListener implements Listener {
         if (world == null) {
             return;
         }
-        // 数一下这件家具上已经坐了几个人，超员就拒绝
+        // 数一下这件家具上已经坐了几个人，超员就拒绝（先清掉座位实体已经消失的脏记录）
+        for (java.util.Iterator<Map.Entry<UUID, PlacedFurniture>> it = seatRecords.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<UUID, PlacedFurniture> entry = it.next();
+            org.bukkit.World seatWorld = plugin.getServer().getWorld(entry.getValue().worldName());
+            if (seatWorld != null && seatWorld.getEntity(entry.getKey()) == null) {
+                it.remove();
+            }
+        }
         int taken = 0;
         for (PlacedFurniture occupied : seatRecords.values()) {
             if (occupied == record) {
@@ -239,8 +247,14 @@ public final class FurnitureListener implements Listener {
         if (seatId == null) {
             return;
         }
-        seatRecords.remove(seatId);
+        PlacedFurniture record = seatRecords.remove(seatId);
         Entity seat = player.getWorld().getEntity(seatId);
+        if (seat == null && record != null) {
+            org.bukkit.World seatWorld = plugin.getServer().getWorld(record.worldName());
+            if (seatWorld != null) {
+                seat = seatWorld.getEntity(seatId);
+            }
+        }
         if (player.getVehicle() != null) {
             player.leaveVehicle();
         }
@@ -293,9 +307,11 @@ public final class FurnitureListener implements Listener {
     // ---------------------------------------------------------------- 传送 / 死亡时收座位
     @EventHandler
     public void onTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
-        if (seats.containsKey(event.getPlayer().getUniqueId())
-                && (event.getFrom().getWorld() != event.getTo().getWorld()
-                || event.getFrom().distanceSquared(event.getTo()) > 4.0D)) {
+        if (event.getTo() == null || !seats.containsKey(event.getPlayer().getUniqueId())) {
+            return;
+        }
+        if (event.getFrom().getWorld() != event.getTo().getWorld()
+                || event.getFrom().distanceSquared(event.getTo()) > 4.0D) {
             stand(event.getPlayer());
         }
     }
@@ -322,6 +338,10 @@ public final class FurnitureListener implements Listener {
             Entity display = event.getWorld().getEntity(record.displayId());
             if (display instanceof org.bukkit.entity.Display d) {
                 d.setBrightness(record.lit() ? new org.bukkit.entity.Display.Brightness(15, 15) : null);
+            }
+            // 外部改过世界（WorldEdit / 手动放方块）时，把灯具的真实光源方块补回来
+            if (record.lit()) {
+                plugin.manager().syncLightBlock(record);
             }
         }
     }

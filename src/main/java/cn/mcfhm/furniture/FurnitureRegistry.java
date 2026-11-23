@@ -72,6 +72,10 @@ public final class FurnitureRegistry {
             if (material == null || material.isAir()) {
                 material = Material.PAPER;
             }
+            int width = Math.max(1, Math.min(8, section.getInt("size-width", 1)));
+            // 座位数不能超过家具宽度，否则几个人会坐到同一格上
+            int seats = Math.max(1, Math.min(8, section.getInt("seats", 1)));
+            seats = Math.min(seats, Math.max(1, width));
             defs.put(id, new FurnitureDef(
                     id,
                     section.getString("name", id),
@@ -89,7 +93,7 @@ public final class FurnitureRegistry {
                     (float) section.getDouble("seat-y", 0.6D),
                     section.getBoolean("light", false),
                     Math.max(0, Math.min(54, section.getInt("storage", 0))),
-                    Math.max(1, Math.min(8, section.getInt("seats", 1)))
+                    seats
             ));
             FurnitureRecipe recipe = parseRecipe(id, section.getConfigurationSection("recipe"));
             if (recipe != null) {

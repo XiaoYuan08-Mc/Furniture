@@ -44,6 +44,8 @@ public final class FurnitureManager {
     private final Map<UUID, PlacedFurniture> byDisplay = new HashMap<>();
     private final Map<UUID, PlacedFurniture> byHitbox = new HashMap<>();
     private final Map<Cell, PlacedFurniture> occupancy = new HashMap<>();
+    /** 世界还没加载时读到的记录，原样保留并回写，避免主世界以外的家具被当成垃圾清掉 */
+    private final List<Map<String, Object>> parked = new ArrayList<>();
 
     public FurnitureManager(FurniturePlugin plugin) {
         this.plugin = plugin;
@@ -232,6 +234,8 @@ public final class FurnitureManager {
         }
 
         unregisterCells(record, def);
+        // 座位是按朝向算的，转之前先把坐着的人请起来
+        plugin.ejectSeats(record);
         record.yaw(newYaw);
         registerCells(record, def);
 
@@ -265,8 +269,10 @@ public final class FurnitureManager {
         if (def == null || !def.light() || world == null) {
             return;
         }
-        // 区块没加载时方块读写会拿到错的快照，先顶起来
-        world.getChunkAt(record.x(), record.z());
+        // 区块没加载时方块读写会拿到错的快照，先顶起来；已在 ChunkLoadEvent 里就不能再强载
+        if (!world.isChunkLoaded(record.x() >> 4, record.z() >> 4)) {
+            world.getChunkAt(record.x(), record.z());
+        }
         Block anchor = world.getBlockAt(record.x(), record.y(), record.z());
         if (record.lit()) {
             if (anchor.getType().isAir()) {
@@ -408,16 +414,23 @@ public final class FurnitureManager {
             if (!record.contents().isEmpty()) {
                 List<String> packed = new ArrayList<>(record.contents().size());
                 for (ItemStack stack : record.contents()) {
+                    if (stack == null || stack.getType().isAir()) {
+                        packed.add("");
+                        continue;
+                    }
                     try {
                         packed.add(java.util.Base64.getEncoder().encodeToString(stack.serializeAsBytes()));
                     } catch (Exception ignored) {
-                        // 个别物品序列化失败就跳过，避免整份存档写坏
+                        // 个别物品序列化失败就留成空槽，避免整份存档写坏
+                        packed.add("");
                     }
                 }
                 entry.put("contents", packed);
             }
             list.add(entry);
         }
+        // 世界尚未加载的记录原样带回，不能丢
+        list.addAll(parked);
         config.set("furniture", list);
         try {
             config.save(dataFile);
@@ -427,10 +440,15 @@ public final class FurnitureManager {
     }
 
     public void loadAll() {
+        // 重载时先把坐着的人请起来，否则旧记录被替换后座位对不上新记录
+        for (PlacedFurniture record : records) {
+            plugin.ejectSeats(record);
+        }
         records.clear();
         byDisplay.clear();
         byHitbox.clear();
         occupancy.clear();
+        parked.clear();
         if (!dataFile.exists()) {
             return;
         }
@@ -462,7 +480,13 @@ public final class FurnitureManager {
                     continue;
                 }
                 if (world == null) {
-                    plugin.getLogger().warning("世界 " + worldName + " 未加载，跳过家具 " + id);
+                    // 世界没加载（多世界服常见）：保留原始记录，等世界加载后重启恢复
+                    plugin.getLogger().warning("世界 " + worldName + " 未加载，家具 " + id + " 保留在存档里");
+                    Map<String, Object> keep = new LinkedHashMap<>();
+                    for (Map.Entry<?, ?> rawEntry : raw.entrySet()) {
+                        keep.put(String.valueOf(rawEntry.getKey()), rawEntry.getValue());
+                    }
+                    parked.add(keep);
                     continue;
                 }
                 // 先把占地范围内的区块都载入，让持久化实体有机会恢复（多格家具可能跨区块）
@@ -472,7 +496,12 @@ public final class FurnitureManager {
                 Entity display = world.getEntity(displayId);
                 if (display == null) {
                     plugin.getLogger().warning("家具 " + id + " 的显示实体丢失，重新生成 (" + worldName + " " + x + "," + y + "," + z + ")");
-                    spawn(world, x, y, z, def, yaw, lit);
+                    // 重新生成后把原来的容器内容补回去，别把玩家存的东西弄丢
+                    PlacedFurniture fresh = spawn(world, x, y, z, def, yaw, lit);
+                    if (fresh != null) {
+                        readContents(fresh, raw.get("contents"));
+                        saveAll();
+                    }
                     continue;
                 }
                 if (hitboxId != null && world.getEntity(hitboxId) == null) {
@@ -510,6 +539,11 @@ public final class FurnitureManager {
             return;
         }
         for (Object element : list) {
+            // 空串 = 这个槽位是空的（保留占位，物品不会错位）
+            if (element == null || (element instanceof String text && text.isBlank())) {
+                record.contents().add(null);
+                continue;
+            }
             ItemStack stack = null;
             if (element instanceof ItemStack item) {
                 stack = item;
@@ -530,7 +564,14 @@ public final class FurnitureManager {
             }
             if (stack != null && !stack.getType().isAir()) {
                 record.contents().add(stack);
+            } else {
+                // 解析失败也占住位置，避免后面的物品整体错位
+                record.contents().add(null);
             }
+        }
+        // 尾部空槽没意义，去掉免得存档越写越长
+        while (!record.contents().isEmpty() && record.contents().get(record.contents().size() - 1) == null) {
+            record.contents().remove(record.contents().size() - 1);
         }
     }
 

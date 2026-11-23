@@ -4,6 +4,7 @@ import cn.mcfhm.furniture.FurnitureDef;
 import cn.mcfhm.furniture.FurnitureItems;
 import cn.mcfhm.furniture.FurniturePlugin;
 import cn.mcfhm.furniture.FurnitureRecipe;
+import cn.mcfhm.furniture.FurnitureStorage;
 import cn.mcfhm.furniture.PlacedFurniture;
 import cn.mcfhm.furniture.Text;
 import org.bukkit.Bukkit;
@@ -368,7 +369,7 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
                     + " &7坐=&f" + def.seat() + " &7人数=&f" + def.seats()
                     + " &7灯=&f" + def.light() + " &7容器=&f" + def.storage()));
         }
-        sender.sendMessage(Text.colorize("&7容器内容=&f" + record.contents().size() + " &7件"));
+        sender.sendMessage(Text.colorize("&7容器内容=&f" + FurnitureStorage.itemCount(record) + " &7件"));
         World recordWorld = Bukkit.getWorld(record.worldName());
         if (recordWorld != null) {
             Block anchor = recordWorld.getBlockAt(record.x(), record.y(), record.z());
@@ -380,7 +381,10 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         }
         for (int i = 0; i < record.contents().size() && i < 10; i++) {
             ItemStack stack = record.contents().get(i);
-            sender.sendMessage(Text.colorize("&8- &f" + stack.getType().name() + " &7x" + stack.getAmount()));
+            if (stack == null || stack.getType().isAir()) {
+                continue;
+            }
+            sender.sendMessage(Text.colorize("&8- &7[" + (i + 1) + "] &f" + stack.getType().name() + " &7x" + stack.getAmount()));
         }
     }
 
@@ -426,14 +430,35 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
                 return;
             }
         }
-        if (record.contents().size() >= def.storage()) {
-            sender.sendMessage(Text.colorize("&c容器已满（" + def.storage() + " 格）"));
+        int size = def.storage();
+        int used = FurnitureStorage.itemCount(record);
+        if (used >= size && record.contents().size() >= size) {
+            sender.sendMessage(Text.colorize("&c容器已满（" + size + " 格）"));
             return;
         }
-        record.contents().add(new ItemStack(material, amount));
+        // 找第一个空槽，保持槽位不挤到前面
+        int slot = -1;
+        for (int i = 0; i < record.contents().size(); i++) {
+            ItemStack existing = record.contents().get(i);
+            if (existing == null || existing.getType().isAir()) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot < 0) {
+            if (record.contents().size() >= size) {
+                sender.sendMessage(Text.colorize("&c容器已满（" + size + " 格）"));
+                return;
+            }
+            record.contents().add(new ItemStack(material, amount));
+            slot = record.contents().size() - 1;
+        } else {
+            record.contents().set(slot, new ItemStack(material, amount));
+        }
         plugin.manager().saveAll();
         sender.sendMessage(Text.colorize("&a已放入 &f" + material.name() + " x" + amount
-                + " &7→ " + def.name() + "，当前 &f" + record.contents().size() + "&7/" + def.storage() + " 格"));
+                + " &7→ " + def.name() + " 第 &f" + (slot + 1) + " &7格，当前 &f"
+                + FurnitureStorage.itemCount(record) + "&7/" + size + " 格"));
     }
 
     private void list(CommandSender sender, String[] args, String label) {
@@ -517,6 +542,8 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         plugin.reloadConfig();
         plugin.registry().reload();
         plugin.recipes().sync();
+        // 重新读一遍 placed.yml：手工改过存档也能直接生效，不会重复生成实体
+        plugin.manager().loadAll();
         plugin.rebuildPack();
         sender.sendMessage(Text.colorize("&a已重载: 家具 " + plugin.registry().ids().size()
                 + " 个, 配方 " + plugin.recipes().keys().size()

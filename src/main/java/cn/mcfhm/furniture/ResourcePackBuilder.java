@@ -134,6 +134,8 @@ public final class ResourcePackBuilder {
 
     private static void putEntry(ZipOutputStream zip, String name, byte[] data) throws IOException {
         ZipEntry entry = new ZipEntry(name);
+        // 固定时间戳，内容不变时每次重建 sha1 都一样，玩家不会被无意义地重新下载资源包
+        entry.setTime(0L);
         zip.putNextEntry(entry);
         zip.write(data);
         zip.closeEntry();

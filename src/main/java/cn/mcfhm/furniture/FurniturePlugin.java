@@ -27,6 +27,8 @@ public final class FurniturePlugin extends JavaPlugin {
     private PackServer packServer;
     private PackResult pack;
     private int boundPort;
+    /** 座位清理钩子，由监听器注册；旋转 / 拆除时让坐着的人起身 */
+    private java.util.function.Consumer<PlacedFurniture> seatEjector;
 
     @Override
     public void onEnable() {
@@ -67,6 +69,15 @@ public final class FurniturePlugin extends JavaPlugin {
                 Bukkit.removeRecipe(key);
             }
         }
+        // 关服时界面还开着的话关闭事件不保证触发，先把内容写回去再存盘
+        if (storage != null) {
+            for (Player online : getServer().getOnlinePlayers()) {
+                storage.closeQuietly(online);
+                if (storage.isViewing(online)) {
+                    online.closeInventory();
+                }
+            }
+        }
         if (manager != null) {
             manager.saveAll();
         }
@@ -94,6 +105,17 @@ public final class FurniturePlugin extends JavaPlugin {
 
     public FurnitureStorage storage() {
         return storage;
+    }
+
+    public void seatEjector(java.util.function.Consumer<PlacedFurniture> ejector) {
+        this.seatEjector = ejector;
+    }
+
+    /** 有玩家坐在这件家具上时先让他起身（旋转会改变座位落点） */
+    public void ejectSeats(PlacedFurniture record) {
+        if (seatEjector != null) {
+            seatEjector.accept(record);
+        }
     }
 
     public PackResult pack() {

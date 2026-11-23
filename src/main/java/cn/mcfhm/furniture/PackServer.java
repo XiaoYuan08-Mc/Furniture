@@ -16,6 +16,7 @@ public final class PackServer {
     private int port;
     private final PackResult pack;
     private HttpServer server;
+    private java.util.concurrent.ExecutorService executor;
 
     public PackServer(FurniturePlugin plugin, int port, PackResult pack) {
         this.plugin = plugin;
@@ -42,7 +43,12 @@ public final class PackServer {
         }
         server.createContext("/pack.zip", this::handlePack);
         server.createContext("/", this::handleIndex);
-        server.setExecutor(Executors.newFixedThreadPool(2));
+        executor = Executors.newFixedThreadPool(2, runnable -> {
+            Thread thread = new Thread(runnable, "Furniture-PackServer");
+            thread.setDaemon(true);
+            return thread;
+        });
+        server.setExecutor(executor);
         server.start();
         plugin.getLogger().info("资源包 HTTP 服务已启动，监听 0.0.0.0:" + port + " (/pack.zip)");
         return port;
@@ -56,6 +62,10 @@ public final class PackServer {
         if (server != null) {
             server.stop(0);
             server = null;
+        }
+        if (executor != null) {
+            executor.shutdownNow();
+            executor = null;
         }
     }
 
