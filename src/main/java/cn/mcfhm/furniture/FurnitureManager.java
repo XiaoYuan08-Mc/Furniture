@@ -578,15 +578,33 @@ public final class FurnitureManager {
         FurnitureDef def = plugin.registry().get(record.id());
         Bukkit.getPluginManager().callEvent(new FurnitureRemoveEvent(record));
         if (world != null) {
+            // 区块不在线时 getEntity 拿不到东西，remove 就白删了，会留下幽灵显示和交互箱
+            for (int[] offset : def == null ? List.of(new int[]{0, 0}) : cells(def, record.yaw())) {
+                world.getChunkAt((record.x() + offset[0]) >> 4, (record.z() + offset[1]) >> 4);
+            }
             Entity display = world.getEntity(record.displayId());
+            if (display == null) {
+                Location center = new Location(world, record.x() + 0.5D, record.y() + 0.5D, record.z() + 0.5D);
+                for (Entity entity : world.getNearbyEntities(center, 3.0D, 3.0D, 3.0D)) {
+                    if (entity.getUniqueId().equals(record.displayId())) {
+                        display = entity;
+                        break;
+                    }
+                }
+            }
             if (display != null) {
                 display.remove();
             }
-            if (record.hitboxId() != null) {
-                Entity hitbox = world.getEntity(record.hitboxId());
-                if (hitbox != null) {
-                    hitbox.remove();
-                }
+            Interaction hitbox = record.hitboxId() == null ? null : loadedHitbox(world, record);
+            if (hitbox == null && record.hitboxId() != null) {
+                hitbox = world.getEntity(record.hitboxId()) instanceof Interaction found ? found : null;
+            }
+            if (hitbox != null) {
+                hitbox.remove();
+            }
+            // 同一件家具的历史残留交互箱（老版本重建过、区块没加载时删不掉留下的）一起清
+            if (def != null) {
+                purgeLooseHitboxes(world, record, def);
             }
             removeCollisions(record);
             if (def != null && def.storage() > 0 && !record.contents().isEmpty()) {
@@ -992,6 +1010,42 @@ public final class FurnitureManager {
         }
     }
 
+    /** 顺手清掉这件家具占地方格里"没被任何记录认领"的同 ID 交互箱（历史重建留下的残留） */
+    public int purgeLooseHitboxes(World world, PlacedFurniture record, FurnitureDef def) {
+        java.util.Set<String> allowed = new java.util.HashSet<>();
+        for (int[] offset : cells(def, record.yaw())) {
+            allowed.add((record.x() + offset[0]) + "," + record.y() + "," + (record.z() + offset[1]));
+        }
+        Location center = new Location(world, record.x() + 0.5D, record.y() + 0.5D, record.z() + 0.5D);
+        int removed = 0;
+        for (Entity entity : world.getNearbyEntities(center, 4.0D, 2.0D, 4.0D)) {
+            if (!(entity instanceof Interaction interaction)) {
+                continue;
+            }
+            if (record.hitboxId() != null && interaction.getUniqueId().equals(record.hitboxId())) {
+                continue;
+            }
+            if (claimedByOther(interaction.getUniqueId(), record)) {
+                continue;
+            }
+            String tagged = interaction.getPersistentDataContainer().get(plugin.furnitureIdKey(), PersistentDataType.STRING);
+            if (!record.id().equals(tagged)) {
+                continue;
+            }
+            Location loc = interaction.getLocation();
+            if (!allowed.contains(loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ())) {
+                continue;
+            }
+            interaction.remove();
+            removed++;
+        }
+        if (removed > 0) {
+            plugin.getLogger().info("清理残留交互箱 " + removed + " 个 (" + record.id() + " @ "
+                    + record.x() + "," + record.y() + "," + record.z() + ")");
+        }
+        return removed;
+    }
+
     /** 在锚点附近找一件还没登记过的、属于同一家具 ID 的交互箱（兼容老存档） */
     private Interaction findLooseHitbox(World world, int x, int y, int z, String id,
                                         FurnitureDef def, float yaw) {
@@ -1091,6 +1145,7 @@ public final class FurnitureManager {
             if (!sameSpot(hitbox.getLocation(), target)) {
                 hitbox.teleport(target);
             }
+            purgeLooseHitboxes(world, record, def);
         }
         return hitbox;
     }

@@ -363,8 +363,13 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
                 continue;
             }
             String hit = record.hitboxId() == null ? "无" : record.hitboxId().toString().substring(0, 8);
+            String before = plugin.manager().hitboxStatus(record);
+            FurnitureDef def = plugin.registry().get(record.id());
+            if (def != null) {
+                plugin.manager().ensureHitbox(record, def);
+            }
             sender.sendMessage(Text.colorize("&7记录 &f" + record.id() + " &7(" + record.x() + "," + record.y() + "," + record.z()
-                    + ") hitbox=&f" + hit + " &7状态=&f" + plugin.manager().hitboxStatus(record)));
+                    + ") hitbox=&f" + hit + " &7检查=&f" + before + " &7→ 修复后=&f" + plugin.manager().hitboxStatus(record)));
         }
         int count = 0;
         java.util.List<org.bukkit.entity.Interaction> all = new java.util.ArrayList<>();
