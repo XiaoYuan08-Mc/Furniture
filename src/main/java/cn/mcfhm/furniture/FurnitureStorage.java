@@ -116,14 +116,14 @@ public final class FurnitureStorage {
         }
     }
 
-    /** 家具被拆 / 玩家退出时兜底，避免内容丢失 */
+    /** 家具被拆或玩家退出时补写内容，避免丢失 */
     public void flush(Player player, Inventory inventory) {
         if (viewing.containsKey(player.getUniqueId())) {
             close(player, inventory);
         }
     }
 
-    /** 玩家直接退出（没有触发关闭界面事件）时兜底 */
+    /** 玩家直接退出、没触发关闭界面事件时补写 */
     public void closeQuietly(Player player) {
         Inventory opened = viewingInventories.get(player.getUniqueId());
         if (opened == null) {
@@ -135,12 +135,12 @@ public final class FurnitureStorage {
 
     /** 把容器里的东西全部掉到地上（拆除时调用） */
     public void dropContents(PlacedFurniture record) {
-        List<ItemStack> copy = new ArrayList<>(record.contents());
-        record.contents().clear();
         Location at = record.location();
         if (at == null) {
             return;
         }
+        List<ItemStack> copy = new ArrayList<>(record.contents());
+        record.contents().clear();
         for (ItemStack stack : copy) {
             if (stack != null && !stack.getType().isAir()) {
                 at.getWorld().dropItemNaturally(at, stack);

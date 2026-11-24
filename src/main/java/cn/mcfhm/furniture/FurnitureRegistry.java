@@ -182,7 +182,7 @@ public final class FurnitureRegistry {
     /**
      * 老服务器上的 furniture.yml 不会被新 jar 覆盖（saveResource 不覆盖已存在的文件），
      * 所以 0.4.0 的精确座位点得自己补进去：只补缺 seat-points 的条目，用户改过的条目不碰。
-     * 顺手把地毯的 solid 补成 false，不然升级后地毯会变成一堵墙。
+     * 同时把地毯的 solid 补成 false，不然升级后地毯会变成一堵墙。
      */
     private void migrateSeatData(File file) throws IOException {
         String raw = java.nio.file.Files.readString(file.toPath(), StandardCharsets.UTF_8);

@@ -373,7 +373,7 @@ public final class FurnitureManager {
         }
     }
 
-    /** 是不是本插件生成的挡人实体 */
+    /** 是不是插件生成的挡人实体 */
     public boolean isCollision(Entity entity) {
         return entity instanceof Shulker
                 && entity.getPersistentDataContainer().has(plugin.collisionKey(), PersistentDataType.STRING);
@@ -1010,7 +1010,7 @@ public final class FurnitureManager {
         }
     }
 
-    /** 顺手清掉这件家具占地方格里"没被任何记录认领"的同 ID 交互箱（历史重建留下的残留） */
+    /** 一并清掉这件家具占地方格里"没被任何记录认领"的同 ID 交互箱（历史重建留下的残留） */
     public int purgeLooseHitboxes(World world, PlacedFurniture record, FurnitureDef def) {
         java.util.Set<String> allowed = new java.util.HashSet<>();
         for (int[] offset : cells(def, record.yaw())) {
@@ -1094,7 +1094,7 @@ public final class FurnitureManager {
 
     /**
      * 交互箱容错。重启、区块重载、别的插件清过实体之后，交互箱可能迟到或彻底丢失：
-     * 少了它客户端右键会打空（家具既开不了也拆不掉），所以按三级兜底补齐。
+     * 少了它客户端右键会打空（家具既开不了也拆不掉），所以分三层补建。
      * 顺序：存档 UUID → 附近同 ID 的未登记交互箱 → 重新生成一只。
      */
     public Interaction ensureHitbox(PlacedFurniture record, FurnitureDef def) {
@@ -1170,7 +1170,7 @@ public final class FurnitureManager {
     /**
      * 反查：拿一只交互箱问它属于哪件家具。
      * 只靠 byHitbox 映射时，恢复顺序稍有偏差（实体比记录晚进世界）就会永久失效，
-     * 这里再用 PDC 标签 + 坐标兜底，查到顺手补登记。
+     * 这里再用 PDC 标签和坐标反查，查到就补登记。
      */
     public PlacedFurniture resolveHitbox(Interaction interaction) {
         PlacedFurniture known = byHitbox.get(interaction.getUniqueId());
@@ -1189,7 +1189,7 @@ public final class FurnitureManager {
             adoptHitbox(interaction, byCell);
             return byCell;
         }
-        // 多格家具的交互箱在占地中心，锚点格不一定就是它脚下那格，按距离兜底
+        // 多格家具的交互箱在占地中心，锚点格不一定就是它脚下那格，按距离匹配
         PlacedFurniture best = null;
         double bestDistance = 2.5D;
         for (PlacedFurniture record : records) {
@@ -1215,7 +1215,7 @@ public final class FurnitureManager {
             adoptHitbox(interaction, best);
             return best;
         }
-        return best;
+        return null;
     }
 
     private void adoptHitbox(Interaction interaction, PlacedFurniture record) {

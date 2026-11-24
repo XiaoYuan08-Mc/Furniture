@@ -141,7 +141,7 @@ public final class FurnitureListener implements Listener {
     }
 
     /**
-     * 左键拆除兜底。
+     * 左键拆除的备用方式。
      * Interaction 不是 LivingEntity，客户端左键它不会产生 EntityDamageByEntityEvent，
      * 一旦玩家打的是交互箱（而不是挡人的潜影贝），旧逻辑就完全拆不掉。
      * 这里按视角射线找家具，命中就近拆除。
@@ -557,7 +557,7 @@ public final class FurnitureListener implements Listener {
     }
 
     /**
-     * 合成结果兜底：自己比对 3x3 合成格，命中家具配方就把结果槽换成
+     * 合成结果校正：自己比对 3x3 合成格，命中家具配方就把结果槽换成
      * 带 PDC + item_model 的家具物品，不依赖服务端对配方产物的序列化行为。
      */
     @EventHandler(priority = EventPriority.HIGH)

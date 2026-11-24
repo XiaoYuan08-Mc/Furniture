@@ -337,7 +337,7 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Text.colorize("&a已" + (lit ? "开灯" : "关灯") + " &f" + def.name()));
     }
 
-    /** 座位点转成一句话，方便验收时对一遍 /furniture info 的输出 */
+    /** 座位点转成简短文本，方便核对 /furniture info 的输出 */
     private static String seatPointsText(FurnitureDef def) {
         if (def.seatPoints() == null || def.seatPoints().isEmpty()) {
             return "无（按占地均分, seat-y=" + def.seatY() + "）";
@@ -374,7 +374,7 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         int count = 0;
         java.util.List<org.bukkit.entity.Interaction> all = new java.util.ArrayList<>();
         Location probe = sender instanceof Player player ? player.getLocation() : new Location(world, 0, 100, 0);
-        for (org.bukkit.entity.Entity entity : world.getNearbyEntities(probe, 256.0D, 256.0D, 256.0D)) {
+        for (org.bukkit.entity.Entity entity : world.getNearbyEntities(probe, 64.0D, 64.0D, 64.0D)) {
             if (entity instanceof org.bukkit.entity.Interaction interaction) {
                 all.add(interaction);
             }
@@ -393,7 +393,8 @@ public final class FurnitureCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Text.colorize("&7世界内交互箱实体共 &f" + count + " &7个"));
     }
 
-    private void info(CommandSender sender, String[] args) {        World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
+    private void info(CommandSender sender, String[] args) {
+        World world = sender instanceof Player player ? player.getWorld() : Bukkit.getWorlds().get(0);
         Location at;
         try {
             if (args.length >= 4) {

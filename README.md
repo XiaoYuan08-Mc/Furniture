@@ -1,226 +1,99 @@
 # Furniture
 
-用 Display 实体做家具，资源包自动生成。自带 76 件家具和景观，都能在工作台合成。跑在 Purpur / Paper 26.3、Java 25 上。
+Minecraft 家具插件，支持 Purpur / Paper 26.3 和 Java 25。
 
-- 服务端：Purpur/Paper **26.3**（Java 25）
-- 家具外观：`ItemDisplay` 渲染 `item_model` 自定义模型（`ItemDisplayTransform.NONE`，模型 1 单位 = 1 像素，16 = 1 格）
-- 交互碰撞：`Interaction` 实体（尺寸按家具定义，多格家具的交互箱覆盖整个占地）
-- 挡人碰撞：每格一只完全隐形的潜影贝，`Display` 和 `Interaction` 都没有实体碰撞
-- 资源包：插件启动时把内置 `pack/` 打成 zip，并起一个内置 HTTP 服务（默认 8123，被占用自动顺延），玩家登录后自动下发
-- 合成：`furniture.yml` 的 `recipe` 节点注册成真正的工作台配方
+家具外观用 ItemDisplay 渲染自定义模型，右键交互靠 Interaction 实体，挡人靠隐形的潜影贝。资源包由插件自己生成并通过内置 HTTP 服务下发，不需要另外装材质包。
 
-## 0.4.2 修了什么
+内置 76 件家具，都能在工作台合成。
 
-1. **重启后家具点不动 / 拆不掉**。两处原因都堵住了：
-   - 插件以前只靠"交互箱 UUID → 家具"这张内存映射认家具。重启后实体比记录晚进世界，映射没建起来，客户端右键明明命中了交互箱，插件却认不出来，等于点了没反应。现在认不出时会用交互箱自带的家具标签 + 坐标反查记录，查到就当场补登记（`/furniture info` 能直接看到"在位 / 已登记"）。
-   - 左键拆家以前只挂在 `EntityDamageByEntityEvent` 上，而 `Interaction` 不是生物、不产生伤害事件，打交互箱根本拆不掉。现在加了按视角射线的左键拆除（4.5 格，方块挡在前面就不算），300 毫秒节流。
-2. **交互箱三级兜底**：存档 UUID 找不到 → 接管占地范围内同款家具的未登记交互箱 → 真的丢失就重新生成并写回 `placed.yml`。恢复时会把交互箱尺寸、响应、朝向按定义重设一遍，旧版本建的小交互箱也能重新点得到。同一格里历史重建留下的多余交互箱会顺手清掉（日志 `清理残留交互箱 n 个`）。
-3. **显示实体不再误判丢失**：查不到显示实体时先等一个 tick 再看，真丢才重建（重建会把容器里的东西补回去），避免重启后刷出重复家具 / 幽灵家具。拆除时先把区块载入再删实体，免得区块没加载导致"显示和交互箱看着删了、其实还在"。
-4. **进服兜底**：玩家登录 2 秒后把身边 16 格内家具的交互箱、挡人实体再确认一遍；区块加载时也会补。所以就算实体状态在加载瞬间不对，人走到家具跟前时也是可用的。
-5. **新排障命令** `/furniture debug`：列出所有家具记录的交互箱 UUID、在位状态，以及世界里实际存在的交互箱实体，用来核对"记录有、实体没了"。`/furniture info <x> <y> <z>` 也多了交互箱状态和归属两行。
+## 安装
 
-## 0.4.1 修了什么
+1. 把 `Furniture-0.4.3.jar` 放进 `plugins/`，同名的旧 jar 要先删掉。
+2. 启动后生成 `plugins/Furniture/config.yml`、`furniture.yml` 和 `pack/`。
+3. 默认在 8123 端口托管资源包，被占用会自动往后顺延。正式服用 `resource-pack.public-url` 填公网地址。
+4. 玩家进服后自动收到资源包。
 
-1. **紫黑的真正原因**：26.3 要求每个模型都声明可解析的 `particle` 纹理槽。76 个模型里有 72 个没写，客户端日志刷一屏 `Missing texture references in model furniture:xxx: particle`，并把整件模型降级成 missing model 渲染（就是截图里的粉黑棋盘）。全部补上 `particle`，取值就用模型自己的第一张贴图，粒子颜色和家具本体一致。
-2. **贴图不再依赖原版文件名**：76 个模型引用的 30 张原版方块贴图全部复制进包内的 `assets/furniture/textures/block/`，模型引用改成 `furniture:block/...`（动画贴图的 `.mcmeta` 也一起复制）。以后客户端装别的资源包、或者原版把某个贴图改名，家具都不会再变色或紫黑。
-3. **集成里的四个资源包合并进同一个包**：`Anti_Xray_Full_26.3`、`EnderEyes_26.3_v3.1`、`EvenBetterEnchants_v3`、`Clearer Slot Highlight` 的 assets 全部并进插件内置资源包，客户端只装一个包就能同时拿到反透视、末影眼、附魔外观、槽位高亮。家具用独立 `furniture` 命名空间，冲突时家具优先，实际只有 2 个文件重叠（末影传送门方块，归 EnderEyes）。
-4. **新增校验脚本**：`tools/check-pack.py` 模拟客户端叠加，把包内 3092 个模型的贴图引用和 `particle` 槽全查一遍；`tools/check-textures.py` 单独核对原版贴图清单。
-5. **包体积**：59,853 字节 / 153 条目 → 1,805,173 字节 / 4703 条目（sha1 7f56f5e5），主要是并进来的四个包；资源包仍在启动时生成，固定时间戳，内容不变时 sha1 不变。
+## 使用
 
-## 0.4.0 修了什么
+- 放置：手持家具右键方块，朝向跟着视角走；潜行右键原地转 90 度。
+- 拆除：左键，4.5 格内有效，隔着方块打不到。家具物品和容器里的东西会掉出来。
+- 座椅：右键坐下，潜行、受击、传送、死亡都会自动起身。
+- 储物：右键打开界面，格子位置会原样保留。
+- 灯具：右键开关。开灯时会在锚点格放一个 invisible 的 light 方块，真的能照亮。
+- 合成：`furniture.yml` 里的 `recipe` 会注册成工作台配方，`/furniture recipes` 可以看图案。
 
-1. **紫黑方块的原因找到了**：`bar_counter / kitchen_counter / mirror / round_table / sink / vanity` 这 6 个模型引用的是 `minecraft:block/smooth_quartz`，26.3 里这个贴图文件名没了（现在是 `quartz_block_*`），客户端只能画成紫黑缺失贴图。全部换成 `quartz_block_bottom`，顺手写了个脚本把 76 个模型的贴图名跟客户端 jar 里的清单对了一遍。
-2. **家具挡人了**：以前玩家能直接穿过桌子柜子。现在每件家具按占地格生成隐形潜影贝（无 AI、隐身、静音、不刷怪、无敌、不打掉落物），走不过去也打不掉。`collision.enabled` 可以整体关掉。
-3. **能坐的家具默认不挡人**：椅子沙发如果也挡，坐上去会被自己的碰撞箱顶出来，起身还可能卡在方块里。`collision.skip-seatable` 控制这条。
-4. **坐姿按模型算**：新增 `seat-points`，单位是模型像素 `[x, y, z]`，x/z 以锚点方块中心为 8。17 件能坐的家具逐件量了坐垫/凳面的顶面，以前吧台凳坐 0.92（人陷在凳子里）、圆凳坐 0.5（悬空 30cm）这类问题都改了。
-5. **多人座不再挤同一侧**：野餐桌的两个人原本会一起坐到同一侧的长凳外沿，现在按 `seat-points` 一人一边。
-6. **实体位置会被纠正**：区块重载后按 `placed.yml` 的坐标把 `ItemDisplay` 和交互箱摆回去；家具已经拆掉但潜影贝还留着的孤儿实体会在区块加载时清掉。
-7. **存档多了 `collision` 字段**：老存档没有这一项，读档时会按需补生成，不用手动迁移。
-
-## 0.3.1 修了什么
-
-1. **容器槽位保序**：界面里物品放在第 20 格，关掉重开后还在第 20 格（以前会全部挤到最前面）。存档用空串占位。
-2. **世界未加载的记录不再被清掉**：多世界服里 world 没加载时先把记录 park 住并原样回写，不会被 `saveAll` 当成垃圾删掉。
-3. **显示实体丢失重新生成时保留容器内容**：以前重生成只补模型和交互箱，柜子里的东西会没。
-4. **容器界面身份校验**：只认当初打开的那个界面，别的界面关闭不会把内容误写进家具。
-5. **关服刷新容器**：`onDisable` 先把还在看界面的玩家内容写回再存盘。
-6. **开箱失败清理映射**：被别的插件拦下没打开时不会留下脏占用，挡住其他人。
-7. **座位加固**：`seats` 自动钳制不超过家具宽度；清理座位实体已消失的脏记录；跨世界 / 传送到空目标不再 NPE。
-8. **旋转先请人起身**：命令旋转和交互旋转都会先把坐着的人请起来，座位不会停在旧朝向。
-9. **灯具光源方块补回**：区块重新加载时如果外部把 `light` 方块改掉了，会自动补回来。
-10. **资源包 hash 稳定**：zip 条目固定时间戳，内容没改时 `sha1` 不变，`/furniture reload` 不会让所有玩家重下资源包。
-11. **资源包 HTTP 线程池回收**：每次 reload 都会关掉旧线程池，不再泄漏。
-12. **`/furniture reload` 也重读 `placed.yml`**：手工改过存档能直接生效，已有实体会被复用不会重复生成。
-
-## 0.3.0 相对 0.2.0 的变化
-
-1. **真实照明**：灯具开灯时在锚点格放一个不可见的 `minecraft:light`（亮度 15），真的照亮地面和墙；关灯 / 拆除自动清掉。`config.yml` 的 `light.place-block` 可关。
-2. **多人座位**：`seats: 2/3` 让长条沙发、野餐桌、秋千能同时坐多人，沿家具宽度自动等分落座，坐满会提示。
-3. **储物容器内容持久化**：改成 Base64 物品字节存 `placed.yml`（原来的 YAML ItemStack 序列化在 26.3 会 `Material cannot be null`，已废弃）。
-4. **新增 `/furniture fill`**：不用开 GUI 就能往储物家具里塞物品，方便验收和补货。
-5. **`/furniture info`** 增加人数、锚点方块与亮度，验收灯和容器一眼看清。
-6. **`/furniture list` 支持中文名过滤**（`/furniture list 沙发` 直接列出 4 件沙发）。
-7. 目录 52 → **76 件**，新增 24 件（含樱桃木、玻璃、沙岩材质）。
-
-## 快速测试
-
-1. 把 `build/libs/Furniture-0.4.2.jar` 丢进 `plugins/`（**删掉旧的 0.3.x / 0.4.x jar**，同版本名会报 Ambiguous plugin name）。
-2. 控制台确认：
-   - `已加载家具定义 76 个, 合成配方 76 条`
-   - `资源包已生成: ...\plugins\Furniture\pack\FurniturePack.zip (1805173 字节, sha1=…)`
-   - `资源包 HTTP 服务已启动，监听 0.0.0.0:8123 (/pack.zip)`
-3. 进服接受资源包，控制台出现 `资源包已加载: <玩家名>`。
-4. 拿家具与放置：
-   ```
-   /furniture list 沙发
-   /furniture give sofa_long 2
-   手持家具右键方块      # 放置，朝向跟随视角
-   左键                  # 拆除（默认掉落家具物品）
-   潜行右键              # 原地旋转 90°
-   右键椅子              # 坐上去（潜行 / 受击 / 传送 / 死亡自动起身）
-   右键柜子              # 打开储物界面
-   右键灯具              # 开灯 / 关灯
-   ```
-
-## 家具清单（76 件）
-
-| 分类 | ID |
-| --- | --- |
-| 座椅 | `chair` 木椅、`chair_spruce` 云杉椅、`stool` 圆凳、`bench` 长凳、`rocking_chair` 摇椅、`armchair` 扶手椅、`couch` 沙发、`couch_blue` 蓝色沙发、`office_chair` 办公椅、`bar_stool` 吧台凳、`piano_stool` 琴凳、`sofa_long` 长条沙发（2 格宽 / 2 人）、`bean_bag` 懒人沙发 |
-| 桌台 | `table` 木桌、`coffee_table` 茶几、`desk` 书桌、`dining_table` 餐桌（2 格宽）、`side_table` 边几、`picnic_table` 野餐桌（2 格宽 / 2 人）、`round_table` 圆桌、`bar_counter` 吧台、`computer_desk` 电脑桌、`workbench_table` 工作台 |
-| 储物 | `cabinet` 木柜(27)、`drawer` 抽屉柜(27)、`shelf` 书架(27)、`wardrobe` 衣柜(54)、`nightstand` 床头柜(9)、`shoe_rack` 鞋架(9)、`tv_stand` 电视柜(27)、`crate` 木箱(27)、`vanity` 梳妆台(27)、`bookshelf_tall` 高书柜(54)、`safe` 保险柜(27)、`medicine_cabinet` 药柜(18)、`wine_rack` 酒架(18)、`fridge` 冰箱(54)、`kitchen_counter` 厨房台面(9) |
-| 床 | `bed` 单人床、`crib` 婴儿床 |
-| 灯具 | `lamp` 落地灯、`table_lamp` 台灯、`street_lamp` 路灯、`lantern_post` 灯笼柱、`ceiling_lamp` 吊灯、`wall_lamp` 壁灯、`candle` 蜡烛、`neon_sign` 霓虹灯牌、`stone_lantern` 石灯笼 |
-| 绿植 | `plant` 盆栽、`flower_pot` 花盆、`planter_box` 花箱、`hedge` 绿篱、`bush` 灌木、`cherry_bonsai` 樱花盆景、`birdhouse` 鸟屋、`mailbox` 信箱、`fence` 栅栏段、`well` 水井 |
-| 景观 | `garden_bench` 花园长椅、`fountain` 喷泉、`arch` 花园拱门、`scarecrow` 稻草人、`swing` 秋千（2 格宽 / 2 人） |
-| 厨房 | `sink` 水槽、`stove` 灶台、`oven` 烤箱、`coffee_machine` 咖啡机 |
-| 其他 | `clock` 落地钟、`coat_rack` 衣帽架、`rug` 地毯、`tv` 电视、`fireplace` 壁炉、`piano` 钢琴、`mirror` 落地镜、`painting_frame` 画框 |
-
-## 命令与权限
+## 命令
 
 | 命令 | 说明 | 权限 |
 | --- | --- | --- |
-| `/furniture list [关键字]` | 列表，可按 ID 或中文名过滤 | 所有人 |
-| `/furniture recipes` | 工作台配方（字符图例 + 材料） | 所有人 |
-| `/furniture nearest` | 身边最近一件的状态 | 所有人 |
-| `/furniture help` | 用法 | 所有人 |
+| `/furniture list [关键字]` | 列出家具，可按 ID 或中文名过滤 | 所有人 |
+| `/furniture recipes` | 查看合成配方 | 所有人 |
+| `/furniture nearest` | 查看身边最近一件家具的状态 | 所有人 |
 | `/furniture give <ID> [玩家] [数量]` | 拿家具 | `furniture.admin` |
-| `/furniture place <ID> [x y z yaw]` | 准星处 / 指定坐标放置 | `furniture.admin` |
-| `/furniture remove [x y z]` | 拆除（掉家具物品 + 掉容器物品） | `furniture.admin` |
-| `/furniture rotate [x y z] [角度]` | 旋转（自动规整到 90° 倍数） | `furniture.admin` |
+| `/furniture place <ID> [x y z yaw]` | 在准星处或指定坐标放置 | `furniture.admin` |
+| `/furniture remove [x y z]` | 拆除并掉落物品 | `furniture.admin` |
+| `/furniture rotate [x y z] [角度]` | 旋转，自动对齐到 90 度 | `furniture.admin` |
 | `/furniture light [x y z]` | 开关灯 | `furniture.admin` |
-| `/furniture info [x y z]` | id / 位置 / yaw / lit / 占地 / 人数 / 容器格数与内容 / 锚点方块 | `furniture.admin` |
-| `/furniture fill <x y z> [material] [数量]` | 往储物家具里塞物品（不开 GUI） | `furniture.admin` |
+| `/furniture info [x y z]` | 查看位置、朝向、占地、容器内容等 | `furniture.admin` |
+| `/furniture fill <x y z> [material] [数量]` | 不开界面直接往容器里放东西 | `furniture.admin` |
 | `/furniture pack` | 重新下发资源包 | `furniture.admin` |
-| `/furniture reload` | 重载配置、重建资源包、重注册配方 | `furniture.admin` |
+| `/furniture reload` | 重载配置、重建资源包 | `furniture.admin` |
+| `/furniture debug` | 排查交互箱是否丢失 | `furniture.admin` |
 
-控制台不受权限限制；`permissions.furniture.admin` 默认给 OP。
+别名 `/jiaju`。控制台不受权限限制。
 
 ## 配置
 
-`plugins/Furniture/config.yml`
+`config.yml` 里常用的几项：
 
-- `resource-pack.mode`：`builtin`（插件自己分发）/ `external`（自己托管，填 `public-url`）
-- `resource-pack.port`：内置 HTTP 端口，占用时自动顺延
-- `resource-pack.public-url`：留空自动用本机局域网 IPv4；正式服填公网 IP / 域名
-- `resource-pack.pack-format`：默认 `97.1`
-- `place.consume-item` / `place.drop-item`：放置是否消耗、拆除是否掉落
-- `interact.sneak-rotate`：潜行右键旋转
-- `interact.seat-offset`：坐姿全局微调（格），`/furniture reload` 生效
-- `interact.seat-marker`：座位用 marker 隐形盔甲架，坐不上去时改 `false`
-- `collision.enabled`：家具挡不挡人（每格一只隐形潜影贝）
-- `collision.skip-seatable`：能坐的家具是否跳过挡人（默认 true）
-- `light.place-block`：开灯是否放真实光源方块（关掉就只是模型自发光，夜里不照亮）
+- `resource-pack.mode`：`builtin` 由插件分发，`external` 用你自己的地址。
+- `resource-pack.port` / `public-url`：内置服务的端口和对外地址。
+- `place.consume-item` / `place.drop-item`：放置是否消耗物品、拆除是否掉落。
+- `interact.sneak-rotate`：潜行右键旋转。
+- `interact.seat-offset`：坐姿整体上下微调，单位是格。
+- `collision.enabled`：家具是否挡人。
+- `collision.skip-seatable`：能坐的家具不生成挡人碰撞，避免坐不上去。
+- `light.place-block`：开灯是否放真实光源方块。
 
-`plugins/Furniture/furniture.yml`
+## 自定义家具
 
-字段：`name / model / material / hitbox-width / hitbox-height / view-range / transform / scale / offset-y / size-width / size-depth / seat / seat-y / seat-points / solid / seats / light / storage / recipe`
-`model` 形如 `furniture:chair`：客户端读 `assets/furniture/items/chair.json`（**重建包时按定义自动生成**）→ 再指向 `assets/furniture/models/chair.json`。
+`furniture.yml` 里一条定义长这样：
 
 ```yaml
   sofa_long:
-    size-width: 2      # 占地 2 格
+    size-width: 2
     seat: true
     seat-y: 0.4375
-    seats: 2           # 两个人能同时坐
-    seat-points:       # 模型像素坐标：两个坐垫的中心
+    seats: 2
+    seat-points:
       - [9, 7, 10]
       - [23, 7, 10]
   cabinet:
-    storage: 27        # 27 格储物，右键打开
-  ceiling_lamp:
-    light: true        # 右键开关灯 + 真实照明方块
-  rug:
-    solid: false       # 地毯平铺在地上，不生成碰撞
+    storage: 27
 ```
 
-加新家具的最小步骤：往 `pack/assets/furniture/models/` 放模型 json → `furniture.yml` 加一条 `model: furniture:xxx` → `/furniture reload`。`items/xxx.json` 不用手写。
+字段：`name / model / material / hitbox-width / hitbox-height / view-range / transform / scale / offset-y / size-width / size-depth / seat / seat-y / seat-points / solid / seats / light / storage / recipe`。
+
+`seat-points` 用模型像素坐标，原点在锚点方块中心，y 从地面算起。
+
+加新家具：把模型 json 放进 `pack/assets/furniture/models/`，在 `furniture.yml` 加一条 `model: furniture:xxx`，然后 `/furniture reload`。`items/xxx.json` 会自动生成。
 
 ## 存档
 
-`plugins/Furniture/placed.yml` 每条记录：
-
-`id / world / x / y / z / yaw / lit / display / hitbox / collision / contents`
-- `collision` 是挡人用的潜影贝 UUID 列表，和占地格一一对应
-- `contents` 是新版 Base64 物品字节列表（老存档的 ItemStack / Map 形态会尝试兼容读取）
-- 老存档缺 `yaw` / `lit` / `hitbox` / `collision` 也能读，交互箱、亮度和碰撞体会自动重新绑上
-
-## 批量生成目录
-
-`tools/gen-catalog.ps1` 用「一行一个盒子」描述所有家具（`box` + 贴图键 + 配方 + `sw/sd/seat/seatY/seats/light/storage`），跑一次重新生成模型和整份 `furniture.yml`：
-
-```
-pwsh -File tools/gen-catalog.ps1
-```
-
-输出：`生成模型 66 个, YAML 条目 76 条`。已有的 10 件（`skipModel=$true`）是手调模型，不会被覆盖。储物格数走 `$storageMap` 白名单（9/18/27/36/54）。
-
-## 模型约定
-
-- 坐标 `0~16` = 1 格，`y=0` 是家具底部，正面朝南（`+z`）；`y` 超过 16 即 2 格高
-- 放置锚点取方块中心 `y+0.5`，模型底面贴地；朝向 = 玩家视角 yaw + 180
-- 贴图全部复用原版方块贴图，76 件的包只有 56 KB
-- 原版偶尔会改贴图文件名（26.3 就把 `smooth_quartz` 改掉了，改完对应家具直接变紫黑方块）。换版本后跑一次
-  `python tools/validate.py`，它会拿 `D:/mc263/client.jar` 里的贴图清单核对每个模型引用的名字
-
-## 这一版已跑通的（无头服 + 控制台命令）
-
-- 定义 76 / 配方 76 条 / 资源包 4703 个条目（76 models + 76 items + 30 张自带贴图 + 四个集成包资源 + mcmeta），1645311 字节，重复构建 sha1 一致
-- 储物：`fill` 塞 2 件 → `info` 显示 2 件（[1] DIAMOND、[2] STONE）→ 停服重启 → 仍 2 件 → 旋转后仍在 → `remove` 清空并按件掉落
-- 槽位保序：存档里 `["", base64]` → 重启后 `info` 报"内容=1 件 / [2] DIAMOND" → `fill` 填到第 1 格 → `[1] STONE + [2] DIAMOND`
-- 世界未加载：写入 `world: world_missing` 记录 → 启动 WARN 提示并 park → 后续 `saveAll` 后该记录仍在
-- 显示实体丢失：手改 display UUID 为假值 → 启动 WARN"重新生成" → `info` 仍是 `[1] GOLD_INGOT x3`，内容没丢
-- 重载：连续 `/furniture reload` 端口一直 8123 不被占用、sha1 不变、`placed.yml` 只加载一次不重复生成实体
-- 真实照明：锚点 `AIR` → 开灯 `LIGHT 亮度=15` → 关闭 `AIR`；点亮状态旋转正常；拆灯不留光源方块
-- 多人座位：`sofa_long` 解析为 `占地=2x1 人数=2`，旋转 90° 后占地与交互箱同步
-- 中文过滤：`list 沙发` 4 件、`list 灯` 8 件、`list 柜` 7 件
-- 多格占位互斥：`sofa_long` 占 `(20,5)+(21,5)` 时，`chair` 放 `21,5` 被拒、放 `22,5` 正常
-- 无插件异常堆栈（`full.log` / `reload2.log` 仅有服务端自身的 log4j 提示）
-
-## 仍需真人验证（GUI 相关）
-
-- 储物界面开合、`InventoryCloseEvent` 回写、同一容器互斥提示
-- 多人同坐的实际落座位置与坐姿高度（`seat-offset` 微调）
-- 拆除时正在看的容器会被强制关闭
+`plugins/Furniture/placed.yml` 保存每件家具的位置、朝向、容器内容和实体 UUID。旧版本的字段缺失时会自动补，不需要手动迁移。
 
 ## 已知限制
 
-- 挡人用的是隐形潜影贝，`/kill @e[type=shulker]` 或者清实体插件会把它们清掉；区块重新加载时会补回来
-- 能坐的家具默认不挡人（挡了坐不上去），想让椅子也挡就把 `collision.skip-seatable` 改成 false，代价是起身时可能卡在方块里
-- 无玩家在线时区块不加载，控制台放的家具要等人靠近才可见
-- 真实照明用的是透明 `light` 方块，占锚点格；锚点格不是空气时不会强行替换
+- 挡人用的是隐形潜影贝，`/kill @e[type=shulker]` 会把它们一起清掉，区块重新加载后会补回来。
+- 能坐的家具默认不挡人；想让椅子也挡人，把 `collision.skip-seatable` 改成 false，但起身时可能卡住。
+- 没有玩家在附近时区块不加载，控制台放的家具要等人靠近才出现。
+- 真实光源占的是锚点格，锚点格不是空气时不会强行替换。
 
 ## 构建
 
+```powershell
+& 'D:\scoop\apps\gradle\current\bin\gradle.bat' -p 'G:\插件\家具' build --console=plain `
+  '-Dorg.gradle.java.installations.paths=D:\mo-jdk\jdk-25.0.5+8'
 ```
-gradle build --offline
-```
 
-编译期直接用 `G:/服务端/Purpur-26.3/purpur-api/build/libs/purpur-api-26.3.local-SNAPSHOT.jar` 与服务端 `libraries/` 依赖，离线可编译。
-
-## 下一步
-
-1. 双格床「躺下」姿态、沙发靠背朝向修正
-2. 家具 GUI 图标单独做 2D 模型
-3. 资源包与服务器主资源包合并
-4. 继续扩量（目标 100+ 件，往 mod 家具包体量靠）
+产物在 `build/libs/`。
