@@ -1,8 +1,8 @@
 param([int]$WaitSeconds = 150)
 
 $ErrorActionPreference = 'Stop'
-$serverDir = 'G:\服务端'
-$java = 'D:\mo-jdk\jdk-25.0.5+8\bin\java.exe'
+$serverDir = 'E:\繁花梦\01-服务端\测试服务端'
+$java = 'C:\Program Files\Java\jdk-25.0.5.1-hotspot\bin\java.exe'
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = $java
 $psi.WorkingDirectory = $serverDir
@@ -45,7 +45,7 @@ try {
     Write-Output "http-fail: $($_.Exception.Message)"
 }
 if ($sha) {
-    $local = (Get-FileHash 'G:\插件\家具\build\FurniturePack-0.4.1.zip' -Algorithm SHA1).Hash.ToLower()
+    $local = (Get-FileHash (Get-ChildItem 'E:\繁花梦\03-插件\家具\build' -Filter 'FurniturePack-*.zip' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName -Algorithm SHA1).Hash.ToLower()
     Write-Output "local-sha1=$local match=$($sha -eq $local)"
 }
 
@@ -56,3 +56,4 @@ if (-not $p.WaitForExit(45000)) {
     $p.Kill()
 }
 Write-Output "exit-code=$($p.ExitCode)"
+

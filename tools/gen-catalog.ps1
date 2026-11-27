@@ -3,7 +3,7 @@
 # 坐标约定：0~16 = 1 格（>16 就是多格高/宽），y=0 贴地，正面朝 +z。
 # 盒子写法：x1,y1,z1,x2,y2,z2,贴图键
 
-$root = "G:\插件\家具"
+$root = "E:\繁花梦\03-插件\家具"
 $modelDir = Join-Path $root "src\main\resources\pack\assets\furniture\models"
 $yamlPath = Join-Path $root "src\main\resources\furniture.yml"
 

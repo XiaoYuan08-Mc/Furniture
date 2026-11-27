@@ -92,8 +92,7 @@ Minecraft 家具插件，支持 Purpur / Paper 26.3 和 Java 25。
 ## 构建
 
 ```powershell
-& 'D:\scoop\apps\gradle\current\bin\gradle.bat' -p 'G:\插件\家具' build --console=plain `
-  '-Dorg.gradle.java.installations.paths=D:\mo-jdk\jdk-25.0.5+8'
+.\gradlew.bat build --console=plain
 ```
 
 产物在 `build/libs/`。

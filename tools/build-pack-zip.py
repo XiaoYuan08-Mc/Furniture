@@ -2,10 +2,11 @@
 输出到 build/FurniturePack.zip 供本地校验/单独分发。"""
 import json, os, zipfile, hashlib, glob, re
 
-root = r"G:\插件\家具"
-jar_path = os.path.join(root, "build", "libs", "Furniture-0.4.1.jar")
+root = r"E:\繁花梦\03-插件\家具"
+jar_path = max(glob.glob(os.path.join(root, "build", "libs", "Furniture-*.jar")), key=os.path.getmtime)
+ver = re.search(r"Furniture-(\d+\.\d+\.\d+)\.jar", os.path.basename(jar_path)).group(1)
 pack_root = os.path.join(root, "src", "main", "resources", "pack")
-out = os.path.join(root, "build", "FurniturePack-0.4.1.zip")
+out = os.path.join(root, "build", f"FurniturePack-{ver}.zip")
 
 # furniture.yml 里的 model 名 → items/<id>.json
 defs = {}

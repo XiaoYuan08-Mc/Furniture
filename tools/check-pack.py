@@ -2,7 +2,7 @@
 模拟客户端叠加：vanilla jar 的 assets/minecraft + 本包 assets。"""
 import json, os, glob, collections, zipfile
 
-root = r"G:\插件\家具"
+root = r"E:\繁花梦\03-插件\家具"
 pack = os.path.join(root, "src", "main", "resources", "pack")
 client_jar = r"D:\我的世界\.minecraft\versions\2\2.jar"
 

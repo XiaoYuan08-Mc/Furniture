@@ -1,11 +1,11 @@
 import json, os, sys, zipfile, collections, glob
 import yaml
 
-root = r"G:\插件\家具"
+root = r"E:\繁花梦\03-插件\家具"
 res = os.path.join(root, "src", "main", "resources")
 yml = os.path.join(res, "furniture.yml")
 models_dir = os.path.join(res, "pack", "assets", "furniture", "models")
-jar = os.path.join(root, "build", "libs", "Furniture-0.4.1.jar")
+jar = max(glob.glob(os.path.join(root, "build", "libs", "Furniture-*.jar")), key=os.path.getmtime)
 
 data = yaml.safe_load(open(yml, encoding="utf-8"))
 furn = data["furniture"]

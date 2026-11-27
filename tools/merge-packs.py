@@ -2,7 +2,7 @@
 统一出一个资源包，客户端只装一个。家具命名空间 furniture 不参与覆盖。"""
 import os, zipfile, collections
 
-root = r"G:\插件\家具"
+root = r"E:\繁花梦\03-插件\家具"
 pack = os.path.join(root, "src", "main", "resources", "pack")
 integr = os.path.join(root, "集成")
 order = ["Anti_Xray_Full_26.3.zip", "EnderEyes_26.3_v3.1.zip",

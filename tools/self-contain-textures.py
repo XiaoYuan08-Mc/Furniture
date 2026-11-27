@@ -2,7 +2,7 @@
 避免客户端装了别的资源包、或后续版本贴图改名时家具变紫黑/变色。"""
 import json, os, shutil, zipfile
 
-root = r"G:\插件\家具"
+root = r"E:\繁花梦\03-插件\家具"
 pack = os.path.join(root, "src", "main", "resources", "pack")
 models_dir = os.path.join(pack, "assets", "furniture", "models")
 tex_dir = os.path.join(pack, "assets", "furniture", "textures", "block")

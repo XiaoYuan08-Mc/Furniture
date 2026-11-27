@@ -1,6 +1,6 @@
 import json, os, re
 
-root = r"G:\插件\家具"
+root = r"E:\繁花梦\03-插件\家具"
 models_dir = os.path.join(root, "src", "main", "resources", "pack", "assets", "furniture", "models")
 
 fixed, already, errors = [], [], []

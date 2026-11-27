@@ -3,8 +3,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$serverDir = 'G:\服务端'
-$java = 'D:\mo-jdk\jdk-25.0.5+8\bin\java.exe'
+$serverDir = 'E:\繁花梦\01-服务端\测试服务端'
+$java = 'C:\Program Files\Java\jdk-25.0.5.1-hotspot\bin\java.exe'
 $log = Join-Path $serverDir 'logs\latest.log'
 
 function Start-TestServer {
